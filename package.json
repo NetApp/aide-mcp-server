@@ -1,10 +1,10 @@
 {
   "name": "netapp-rag-server",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "MCP server with custom AIDP RAG search functionality",
   "main": "main.py",
   "scripts": {
-    "start-inspector": "concurrently --kill-others \"python -m netapp_rag_server.main\" \"npx @modelcontextprotocol/inspector\""
+    "start-inspector": "npx @modelcontextprotocol/inspector python3 -m netapp_rag_server.main"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
