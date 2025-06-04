@@ -4,7 +4,8 @@
   "description": "MCP server with custom AIDP RAG search functionality",
   "main": "main.py",
   "scripts": {
-    "start-inspector": "npx @modelcontextprotocol/inspector python3 -m netapp_rag_server.main"
+    "server": "python3 -m netapp_rag_server.main",
+    "inspector": "npx @modelcontextprotocol/inspector python3 -m netapp_rag_server.main"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
