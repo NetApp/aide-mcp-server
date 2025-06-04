@@ -1,0 +1,11 @@
+{
+    "rag_search_api_endpoint_url": "https://netapp-data-engine-api.mycompany.net/data-engine/workspaces/00001111-aaaa-2222-bbbb-3333cccc4444/data-collections/00001111-aaaa-2222-bbbb-3333cccc4444/search",
+    "token_request_endpoint": "https://login.microsoftonline.com/mycompany/oauth2/v2.0/token",
+    "token_request_params": {
+        "client_id": "00001111-aaaa-2222-bbbb-3333cccc4444",
+        "client_secret": "client_secret",
+        "scope": "https://mycompany.net/.default",
+        "grant_type": "client_credentials"
+    },
+    "verify_ssl": true
+}
