@@ -77,3 +77,7 @@ Before you begin, ensure you have the following installed on your system:
     ```sh
     npm run inspector
     ```
+
+### NOTE
+
+This MCP server uses the stdio transport as shown in the MCP Server Quickstart (MCP official documentation). The use of the stdio transport implies that this MCP server will be what is known as a "local MCP server," which means that users will run it locally wherever they are running their MCP client.
