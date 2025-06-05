@@ -1,2 +1,11 @@
 # ignore node modules
 node_modules/
+
+# ignore macOS specific file
+.DS_Store
+
+# ignore bytecode cache directories
+__pycache__
+
+# ignore egg-info directories created by setuptools
+*.egg-info/
