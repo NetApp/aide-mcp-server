@@ -8,3 +8,10 @@ authors = [
 dependencies = [
     "fastmcp",
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[project.scripts]
+server = "scripts.scripts:server"
+inspector = "scripts.scripts:inspector"
