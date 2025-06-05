@@ -16,25 +16,16 @@ def load_credentials():
 
     """
     
-    # List of paths to check for the .netapp credentials file
-    credentials_paths = [
-        '.netapp',
-        os.path.expanduser('~/.netapp'),
-        os.path.join(os.path.dirname(__file__), '.netapp')
-    ]
+    # Path to the .netapp credentials file in the user's home directory
+    credentials_path = os.path.expanduser('~/.netapp')
     
-    config = None
-
-    # Tries to find and load the credentials file from one of the possible locations
-    for path in credentials_paths:
-        if os.path.exists(path):
-            with open(path, 'r') as f:
-                config = json.load(f)
-            break # Stops searching once file is found and loaded
-
-    if not config:
-        # If still none, the file is not found
-        raise FileNotFoundError("Credentials file '.netapp' not found.")
+    # If path not found, raise an error that .netapp file doesn't exist
+    if not os.path.exists(credentials_path):
+        raise FileNotFoundError("Credentials file '.netapp' not found in the user's home directory.")
+    
+    # Opens the file specified, reads its contents, parses the contents as JSON, and stores the resulting data
+    with open(credentials_path, 'r') as f:
+        config = json.load(f)
     
     # List of top-level keys required in the config
     required_keys = [
