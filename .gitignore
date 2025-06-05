@@ -6,6 +6,7 @@ node_modules/
 
 # ignore bytecode cache directories
 __pycache__
+__pycache__/
 
 # ignore egg-info directories created by setuptools
 *.egg-info/
