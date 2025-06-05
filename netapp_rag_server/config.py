@@ -48,11 +48,5 @@ def load_credentials():
     for key in required_keys:
         if key not in config:
             raise ValueError(f"Missing required key '{key}' in '.netapp' file.")
-        
-    # Keys required inside the token_request_params disctionary
-    token_param_keys = ['client_id', 'client_secret', 'scope', 'grant_type']
-    for param_key in token_param_keys:
-        if param_key not in config['token_request_params']:
-            raise ValueError(f"Missing '{param_key}' in token_request_params.")
 
     return config # Returns thhe validated configuration dictionary
