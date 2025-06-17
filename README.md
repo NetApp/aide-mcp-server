@@ -14,7 +14,7 @@ This MCP server uses the stdio transport as shown in the MCP Server Quickstart (
 
 Before you begin, ensure you have the following installed on your system:
 
-- Python (>= 3.7)
+- Python (>= 3.10)
 - pip (Python package installer)
 
 ### Creating the `.netapp` File
@@ -86,7 +86,7 @@ There is an `Examples` folder in the repository that contains a `.netapp.example
 4. Run the setup script to install dependencies and set up the environment:
 
     ```sh
-    ./setup.sh
+    ./scripts/setup.sh
     ```
 
     This script will:

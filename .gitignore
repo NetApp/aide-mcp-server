@@ -1,5 +1,5 @@
-# ignore node modules
-node_modules/
+# ignore virtual env
+.venv
 
 # ignore macOS specific file
 .DS_Store

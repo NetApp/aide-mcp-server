@@ -2,6 +2,8 @@
 name = "netapp_mcp_server"
 version = "0.1.0"
 description = "MCP server with custom AIDP RAG search functionality"
+readme = "README.md"
+requires-python = ">=3.10"
 authors = [
     { name = "Shreya Menneni", email = "Shreya.Menneni@netapp.com" }
 ]
