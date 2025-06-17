@@ -67,54 +67,21 @@ There is an `Examples` folder in the repository that contains a `.netapp.example
     cd netapp_mcp_server
     ```
 
-### Installing Python Dependencies
-
-2. Install `pip-tools` if not already installed:
-
-    ```sh
-    pip install pip-tools
-    ```
-
 ### Ensuring `uv` Package is Installed
 
-3. If the `uv` package is not installed:
+2. Install `uv` if not already installed:
 
-    ```sh
-    pip install uv
-    ```
-
-4. Run the setup script to install dependencies and set up the environment:
-
-    ```sh
-    ./scripts/setup.sh
-    ```
-
-    This script will:
-    - Create a cache directory for `uv`.
-    - Set the `UV_CACHE_DIR` environment variable.
-    - Add the environment variable to `.bashrc` if not already present.
-    - Source `.bashrc` to apply changes.
-    - Generate a `requirements.txt` file from `pyproject.toml` if it doesn't exist.
-    - Install the dependencies listed in `requirements.txt`.
-    - Verify the installation of `fastmcp`.
+    Follow [these](https://docs.astral.sh/uv/getting-started/installation/#pypi) instructions to install uv/ uvx
 
 ### Installing Python dependencies
 
-5. Install Python dependencies:
+3. Install Python dependencies:
 
-    ```sh
-    pip install .
-    ```
-
-    For development use (editable install):
-    
-    ```sh
-    pip install -e .
-    ```
+    `uv` will automatically install all dependencies when you run any project command.
 
 ### To run the modelcontextprotocol server
 
-6. Run mcp server:
+4. Run mcp server:
 
     ```sh
     server
@@ -122,7 +89,7 @@ There is an `Examples` folder in the repository that contains a `.netapp.example
 
 ### To run the modelcontextprotocol inspector with a running server
 
-7. Run mcp inspector with a running server:
+5. Run mcp inspector with a running server:
 
     ```sh
     inspector
