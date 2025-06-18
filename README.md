@@ -77,7 +77,11 @@ There is an `Examples` folder in the repository that contains a `.netapp.example
 
 3. Install Python dependencies:
 
-    `uv` will automatically install all dependencies when you run any project command.
+    `uv` will automatically install all dependencies when you run any project command. However, to ensure that your package is installed correctly, run:
+
+    ```sh
+    pip install .
+    ```
 
 ### To run the modelcontextprotocol server
 
