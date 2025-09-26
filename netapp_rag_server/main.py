@@ -12,8 +12,8 @@ mcp = FastMCP("NetApp RAG Search Server")
 # Register the tool
 mcp.tool() (netapp_data_engine_search)
 
-if __name__ == "__main__":
-
+def main():
+    
     try:
         # Validates the configuration in the beginning to catch errors early
         load_credentials()
@@ -33,3 +33,7 @@ if __name__ == "__main__":
         # Logs and prints any startup errors, then exits with an error code
         logging.error(f"Server startup failed: {e}")
         sys.exit(1)
+
+if __name__ == "__main__":
+    
+    main()

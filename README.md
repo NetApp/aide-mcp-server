@@ -2,22 +2,19 @@
 
 ## Description
 
-`netapp_mcp_server` is an MCP server with custom AIDP RAG search functionality. The server provides a tool called `netapp_data_engine_search`. This project is a work in progress, and the AIDP RAG endpoints are yet to be integrated.
+`netapp-data-engine-mcp` is an MCP server (Python package) with custom AIDP RAG (Retrieval-Augmented Generation) search functionality. The server exposes a tool called `netapp_data_engine_search` for use in LLM workflows. This project is a work in progress, and the AIDP RAG endpoints are yet to be integrated.
 
-### NOTE
+>[!NOTE]
+>This MCP server uses the stdio transport, as shown in the [MCP Server Quickstart](https://modelcontextprotocol.io/quickstart/server), making it a "local MCP server". 
 
-This MCP server uses the stdio transport as shown in the MCP Server Quickstart (MCP official documentation). The use of the stdio transport implies that this MCP server will be what is known as a "local MCP server," which means that users will run it locally wherever they are running their MCP client.
-
-## Setup Instructions
+## Quick Start
 
 ### Prerequisites
 
-Before you begin, ensure you have the following installed on your system:
+- Python >= 3.10
+- uvx (manages all installations automatically)
 
-- Python (>= 3.10)
-- pip (Python package installer)
-
-### Creating the `.netapp` File
+### Configuration
 
 Before running the server, you need to create a `.netapp` file in your home directory with the necessary configuration.
 
@@ -54,47 +51,24 @@ Before running the server, you need to create a `.netapp` file in your home dire
 
    - On Windows, you can set the file permissions through the file properties dialog.
 
-### Examples Folder
+>[!TIP]
+>There is an `Examples` folder in the repository that contains a `.netapp.example` file. This file provides an example of how your `.netapp` file should look. You can use this as a reference when creating your own `.netapp` file.
 
-There is an `Examples` folder in the repository that contains a `.netapp.example` file. This file provides an example of how your `.netapp` file should look. You can use this as a reference when creating your own `.netapp` file.
+### Running with uvx
 
-### Cloning the Repository
-
-1. Clone the repository:
-
-    ```sh
-    git clone https://bitbucket.ngage.netapp.com/scm/sie-bb/netapp_mcp_server.git
-    cd netapp_mcp_server
-    ```
-
-### Ensuring `uv` Package is Installed
-
-2. Install `uv` if not already installed:
-
-    Follow [these](https://docs.astral.sh/uv/getting-started/installation/#pypi) instructions to install uv/ uvx
-
-### Installing Python dependencies
-
-3. Install Python dependencies:
-
-    `uv` will automatically install all dependencies when you run any project command. However, to ensure that your package is installed correctly, run:
+You can run the MCP server instantly, without installing anything globally:
 
     ```sh
-    pip install .
+    uvx --from netapp-data-engine-mcp server
     ```
 
-### To run the modelcontextprotocol server
+- `server` script launches the MCP server
 
-4. Run mcp server:
+### Troubleshooting
 
-    ```sh
-    server
-    ```
+- Ensure your .netapp file is present and correctly formatted.
+- Check that Python 3.10+ is installed 
 
-### To run the modelcontextprotocol inspector with a running server
+### License
 
-5. Run mcp inspector with a running server:
-
-    ```sh
-    inspector
-    ```
+Distributed under the terms of the  License (see the `LICENSE` file in the repository).
