@@ -30,7 +30,7 @@ def load_credentials():
     # List of top-level keys required in the config
     required_keys = [
         'rag_search_api_endpoint_url',
-        'token_request_endpoint',
+        'token_request_endpoint_url', 
         'token_request_params',
         'verify_ssl'
     ]

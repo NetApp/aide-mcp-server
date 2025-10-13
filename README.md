@@ -30,7 +30,7 @@ Before running the server, you need to create a `.netapp` file in your home dire
      ```json
      {
          "rag_search_api_endpoint_url": "https://example.com/api",
-         "token_request_endpoint": "https://example.com/oauth2/token",
+         "token_request_endpoint_url": "https://example.com/oauth2/token",
          "token_request_params": {
              "client_id": "your_client_id",
              "client_secret": "your_client_secret",

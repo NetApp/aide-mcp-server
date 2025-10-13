@@ -22,7 +22,7 @@ async def get_access_token(config):
     
     """
 
-    token_endpoint = config['token_request_endpoint']
+    token_endpoint = config['token_request_endpoint_url'] 
 
     # Uses the token endpoint URL as a cache key (hashed for uniqueness)
     cache_key = f"token_{hash(token_endpoint)}"
