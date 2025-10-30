@@ -2,7 +2,7 @@
 
 ## Description
 
-`netapp-data-engine-mcp` is an MCP server (Python package) with custom AIDP RAG (Retrieval-Augmented Generation) search functionality. The server exposes a tool called `netapp_data_engine_search` for use in LLM workflows. This project is a work in progress, and the AIDP RAG endpoints are yet to be integrated.
+`netapp-data-engine-mcp` is an MCP server (Python package) with custom AIDP RAG (Retrieval-Augmented Generation) search functionality. The server exposes a tool called `netapp_data_engine_search` for use in LLM workflows.
 
 >[!NOTE]
 >This MCP server uses the stdio transport, as shown in the [MCP Server Quickstart](https://modelcontextprotocol.io/quickstart/server), making it a "local MCP server". 
@@ -71,4 +71,4 @@ You can run the MCP server instantly, without installing anything globally:
 
 ### License
 
-Distributed under the terms of the  License (see the `LICENSE` file in the repository).
+Distributed under the terms of the BSD 3-Clause License (see the `LICENSE` file in the repository).
