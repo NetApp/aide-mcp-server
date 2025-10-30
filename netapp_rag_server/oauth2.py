@@ -58,4 +58,4 @@ async def get_access_token(config):
             'access_token': token_data['access_token'],
             'expires_at': time.time() + expires_in
         }
-        return token_data['access_token'] # Returns the access token asa string
+        return token_data['access_token'] # Returns the access token as a string

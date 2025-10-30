@@ -40,4 +40,4 @@ def load_credentials():
         if key not in config:
             raise ValueError(f"Missing required key '{key}' in '.netapp' file.")
 
-    return config # Returns thhe validated configuration dictionary
+    return config # Returns the validated configuration dictionary
