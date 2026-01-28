@@ -19,7 +19,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = ["netapp_rag_server"]
+where = ["."]
 
 [project.scripts]
 server = "netapp_rag_server.main:main"
