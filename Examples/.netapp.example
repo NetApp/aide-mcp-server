@@ -1,11 +1,30 @@
+WEB_BASED_AUTH (.netapp)
 {
+    "web_based_auth": true,
+    "rag_search_api_endpoint_url": "https://netapp-data-engine-api.mycompany.net/data-engine/workspaces/00001111-aaaa-2222-bbbb-3333cccc4444/data-collections/00001111-aaaa-2222-bbbb-3333cccc4444/search",
+    "verify_ssl": false,
+    "token_request_endpoint_url": "https://login.microsoftonline.com/mycompany/oauth2/v2.0/authorize",
+    "token_request_params": {
+        "client_id": "00001111-aaaa-2222-bbbb-3333cccc4444",
+        "client_secret": "client_secret",
+        "redirect_uri": "http://localhost:8888",
+        "scope": "00001111-aaaa-2222-bbbb-3333cccc4444/.default",
+        "auth_timeout_seconds": 300
+    }
+}
+
+PASSWORD_GRANT (.netapp)
+{
+    "web_based_auth": false,
     "rag_search_api_endpoint_url": "https://netapp-data-engine-api.mycompany.net/data-engine/workspaces/00001111-aaaa-2222-bbbb-3333cccc4444/data-collections/00001111-aaaa-2222-bbbb-3333cccc4444/search",
     "token_request_endpoint_url": "https://login.microsoftonline.com/mycompany/oauth2/v2.0/token",
     "token_request_params": {
         "client_id": "00001111-aaaa-2222-bbbb-3333cccc4444",
         "client_secret": "client_secret",
-        "scope": "https://mycompany.net/.default",
-        "grant_type": "client_credentials"
+        "scope": "00001111-aaaa-2222-bbbb-3333cccc4444/.default",
+        "grant_type": "password",
+        "username": "user@mycompany.com",
+        "password": "password"
     },
-    "verify_ssl": true
+    "verify_ssl": false
 }

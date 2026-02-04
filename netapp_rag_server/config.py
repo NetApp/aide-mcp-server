@@ -30,8 +30,6 @@ def load_credentials():
     # List of top-level keys required in the config
     required_keys = [
         'rag_search_api_endpoint_url',
-        'token_request_endpoint_url', 
-        'token_request_params',
         'verify_ssl'
     ]
 
@@ -39,5 +37,66 @@ def load_credentials():
     for key in required_keys:
         if key not in config:
             raise ValueError(f"Missing required key '{key}' in '.netapp' file.")
+
+    # Default web_based_auth to False if not provided
+    if 'web_based_auth' not in config:
+        config['web_based_auth'] = False
+
+    if not isinstance(config['web_based_auth'], bool):
+        raise ValueError("'web_based_auth' must be a boolean in '.netapp' file.")
+
+    if 'token_request_endpoint_url' not in config:
+        raise ValueError("Missing required key 'token_request_endpoint_url' in '.netapp' file.")
+
+    if 'token_request_params' not in config:
+        raise ValueError("Missing required key 'token_request_params' in '.netapp' file.")
+
+    if not isinstance(config['token_request_params'], dict):
+        raise ValueError("'token_request_params' must be a JSON object in '.netapp' file.")
+
+    if config['web_based_auth']:
+        # Web-based OAuth2/OIDC flow requirements
+        web_auth_required = [
+            'client_id',
+            'redirect_uri'
+        ]
+
+        for key in web_auth_required:
+            if key not in config['token_request_params']:
+                raise ValueError(f"Missing required key 'token_request_params.{key}' in '.netapp' file.")
+
+    else:
+        # Non-web grant requirements
+        if 'grant_type' not in config['token_request_params']:
+            raise ValueError("Missing required key 'token_request_params.grant_type' in '.netapp' file.")
+
+        grant_type = config['token_request_params']['grant_type']
+
+        if grant_type == 'password':
+            password_required = [
+                'client_id',
+                'client_secret',
+                'scope',
+                'username',
+                'password'
+            ]
+
+            for key in password_required:
+                if key not in config['token_request_params']:
+                    raise ValueError(f"Missing required key 'token_request_params.{key}' in '.netapp' file.")
+
+        elif grant_type == 'client_credentials':
+            client_credentials_required = [
+                'client_id',
+                'client_secret',
+                'scope'
+            ]
+
+            for key in client_credentials_required:
+                if key not in config['token_request_params']:
+                    raise ValueError(f"Missing required key 'token_request_params.{key}' in '.netapp' file.")
+
+        else:
+            raise ValueError("Unsupported grant_type. Use 'password' or 'client_credentials'.")
 
     return config # Returns the validated configuration dictionary
