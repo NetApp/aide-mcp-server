@@ -1,6 +1,7 @@
 # Entry point to setup and run the MCP server
 
 import sys
+import os
 import logging
 from fastmcp import FastMCP
 from .tools import netapp_data_engine_search
@@ -25,8 +26,8 @@ def main():
             logging.info("Registered tools:")
             logging.info(mcp._tool_manager.get_tools())
 
-        # Starts the MCP server using stdio transport for local operation
-        mcp.run(transport="stdio")
+        # Starts the MCP server using SSE transport
+        mcp.run(transport="sse", host="127.0.0.1", port=8080, path="/mcp")
 
     except Exception as e:
 

@@ -27,19 +27,42 @@ Before running the server, you need to create a `.netapp` file in your home dire
    - Open the `.netapp` file in a text editor.
    - Add the following JSON configuration, replacing the example values with your own:
 
+    For PKCE flow:
+
      ```json
      {
-         "rag_search_api_endpoint_url": "https://example.com/api",
-         "token_request_endpoint_url": "https://example.com/oauth2/token",
-         "token_request_params": {
-             "client_id": "your_client_id",
-             "client_secret": "your_client_secret",
-             "scope": "your_scope",
-             "grant_type": "client_credentials"
-         },
-         "verify_ssl": true
+       "rag_search_api_endpoint_url": "https://example.com/api",
+       "verify_ssl": true,
+       "auth_flow": "pkce",
+       "token_request_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/authorize",
+       "token_exchange_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token",
+       "token_request_params": {
+         "client_id": "your_client_id",
+         "redirect_uri": "http://localhost:8888",
+         "scope": "api://your-app/.default",
+         "use_pkce": true,
+         "auth_timeout_seconds": 300
+       }
      }
      ```
+
+    For device code flow:
+
+     ```json
+     {
+       "rag_search_api_endpoint_url": "https://example.com/api",
+       "verify_ssl": true,
+       "auth_flow": "device_code",
+       "device_code_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/devicecode",
+       "token_request_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token",
+       "token_request_params": {
+         "client_id": "your_client_id",
+         "scope": "api://your-app/.default"
+       }
+     }
+     ```
+
+  >Only PKCE (web-based) and Device Code flows are supported.
 
 3. **Set file permissions**:
    - Ensure that the `.netapp` file is not readable by other users/groups for security reasons.
@@ -52,7 +75,7 @@ Before running the server, you need to create a `.netapp` file in your home dire
    - On Windows, you can set the file permissions through the file properties dialog.
 
 >[!TIP]
->There is an `Examples` folder in the repository that contains a `.netapp.example` file. This file provides an example of how your `.netapp` file should look. You can use this as a reference when creating your own `.netapp` file.
+>There is an `Examples` folder in the repository that contains a `.netapp.example` file. This file provides examples of how your `.netapp` file should look. You can use this as a reference when creating your own `.netapp` file.
 
 ### Running with uvx
 

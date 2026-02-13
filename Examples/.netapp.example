@@ -1,30 +1,28 @@
-WEB_BASED_AUTH (.netapp)
+PKCE_AUTH_FLOW (.netapp)
 {
-    "web_based_auth": true,
+    "auth_flow": "pkce",
     "rag_search_api_endpoint_url": "https://netapp-data-engine-api.mycompany.net/data-engine/workspaces/00001111-aaaa-2222-bbbb-3333cccc4444/data-collections/00001111-aaaa-2222-bbbb-3333cccc4444/search",
     "verify_ssl": false,
     "token_request_endpoint_url": "https://login.microsoftonline.com/mycompany/oauth2/v2.0/authorize",
+    "token_exchange_endpoint_url": "https://login.microsoftonline.com/mycompany/oauth2/v2.0/token",
     "token_request_params": {
         "client_id": "00001111-aaaa-2222-bbbb-3333cccc4444",
-        "client_secret": "client_secret",
         "redirect_uri": "http://localhost:8888",
         "scope": "00001111-aaaa-2222-bbbb-3333cccc4444/.default",
+        "use_pkce": true,
         "auth_timeout_seconds": 300
     }
 }
 
-PASSWORD_GRANT (.netapp)
+DEVICE_CODE_FLOW (.netapp)
 {
-    "web_based_auth": false,
+    "auth_flow": "device_code",
     "rag_search_api_endpoint_url": "https://netapp-data-engine-api.mycompany.net/data-engine/workspaces/00001111-aaaa-2222-bbbb-3333cccc4444/data-collections/00001111-aaaa-2222-bbbb-3333cccc4444/search",
+    "verify_ssl": false,
+    "device_code_endpoint_url": "https://login.microsoftonline.com/mycompany/oauth2/v2.0/devicecode",
     "token_request_endpoint_url": "https://login.microsoftonline.com/mycompany/oauth2/v2.0/token",
     "token_request_params": {
         "client_id": "00001111-aaaa-2222-bbbb-3333cccc4444",
-        "client_secret": "client_secret",
-        "scope": "00001111-aaaa-2222-bbbb-3333cccc4444/.default",
-        "grant_type": "password",
-        "username": "user@mycompany.com",
-        "password": "password"
-    },
-    "verify_ssl": false
+        "scope": "00001111-aaaa-2222-bbbb-3333cccc4444/.default"
+    }
 }
