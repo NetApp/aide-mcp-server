@@ -26,8 +26,8 @@ def main():
             logging.info("Registered tools:")
             logging.info(mcp._tool_manager.get_tools())
 
-        # Starts the MCP server using SSE transport
-        mcp.run(transport="sse", host="127.0.0.1", port=8080, path="/mcp")
+        # Starts the MCP server using stdio transport for local operation
+        mcp.run(transport="stdio")
 
     except Exception as e:
 
