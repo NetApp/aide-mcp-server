@@ -46,7 +46,7 @@ Before running the server, you need to create a `.netapp` file in your home dire
      }
      ```
 
-    For device code flow: *(Use this if you do not have a browser on your machine. A code will be displayed in the logs, which you need to enter on the provided URL to authenticate.)*
+    For device code flow: *(Use this if you do not have a browser on your machine. A short code will be printed in the logs — copy it, open the provided verification URL on any device, and enter the code to complete authentication.)*
 
      ```json
      {
