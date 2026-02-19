@@ -27,7 +27,7 @@ Before running the server, you need to create a `.netapp` file in your home dire
    - Open the `.netapp` file in a text editor.
    - Add the following JSON configuration, replacing the example values with your own:
 
-    For PKCE flow:
+    For PKCE flow: *(Recommended if you have a browser available on your machine)*
 
      ```json
      {
@@ -46,7 +46,7 @@ Before running the server, you need to create a `.netapp` file in your home dire
      }
      ```
 
-    For device code flow:
+    For device code flow: *(Use this if you do not have a browser on your machine. A code will be displayed in the logs, which you need to enter on the provided URL to authenticate.)*
 
      ```json
      {
