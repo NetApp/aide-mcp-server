@@ -2,22 +2,19 @@
 
 ## Description
 
-`netapp_mcp_server` is an MCP server with custom AIDP RAG search functionality. The server provides a tool called `netapp_data_engine_search`. This project is a work in progress, and the AIDP RAG endpoints are yet to be integrated.
+`netapp-data-engine-mcp` is an MCP server (Python package) with custom AIDP RAG (Retrieval-Augmented Generation) search functionality. The server exposes a tool called `netapp_data_engine_search` for use in LLM workflows.
 
-### NOTE
+>[!NOTE]
+>This MCP server uses the stdio transport, as shown in the [MCP Server Quickstart](https://modelcontextprotocol.io/quickstart/server), making it a "local MCP server". 
 
-This MCP server uses the stdio transport as shown in the MCP Server Quickstart (MCP official documentation). The use of the stdio transport implies that this MCP server will be what is known as a "local MCP server," which means that users will run it locally wherever they are running their MCP client.
-
-## Setup Instructions
+## Quick Start
 
 ### Prerequisites
 
-Before you begin, ensure you have the following installed on your system:
+- Python >= 3.10
+- uvx (manages all installations automatically)
 
-- Python (>= 3.10)
-- pip (Python package installer)
-
-### Creating the `.netapp` File
+### Configuration
 
 Before running the server, you need to create a `.netapp` file in your home directory with the necessary configuration.
 
@@ -30,19 +27,42 @@ Before running the server, you need to create a `.netapp` file in your home dire
    - Open the `.netapp` file in a text editor.
    - Add the following JSON configuration, replacing the example values with your own:
 
+    For PKCE flow: *(Recommended if you have a browser available on your machine)*
+
      ```json
      {
-         "rag_search_api_endpoint_url": "https://example.com/api",
-         "token_request_endpoint": "https://example.com/oauth2/token",
-         "token_request_params": {
-             "client_id": "your_client_id",
-             "client_secret": "your_client_secret",
-             "scope": "your_scope",
-             "grant_type": "client_credentials"
-         },
-         "verify_ssl": true
+       "rag_search_api_endpoint_url": "https://example.com/api",
+       "verify_ssl": true,
+       "auth_flow": "pkce",
+       "token_request_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/authorize",
+       "token_exchange_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token",
+       "token_request_params": {
+         "client_id": "your_client_id",
+         "redirect_uri": "http://localhost:8888",
+         "scope": "api://your-app/.default",
+         "use_pkce": true,
+         "auth_timeout_seconds": 300
+       }
      }
      ```
+
+    For device code flow: *(Use this if you do not have a browser on your machine. A short code will be printed in the logs — copy it, open the provided verification URL on any device, and enter the code to complete authentication.)*
+
+     ```json
+     {
+       "rag_search_api_endpoint_url": "https://example.com/api",
+       "verify_ssl": true,
+       "auth_flow": "device_code",
+       "device_code_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/devicecode",
+       "token_request_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token",
+       "token_request_params": {
+         "client_id": "your_client_id",
+         "scope": "api://your-app/.default"
+       }
+     }
+     ```
+
+  >Only PKCE (web-based) and Device Code flows are supported.
 
 3. **Set file permissions**:
    - Ensure that the `.netapp` file is not readable by other users/groups for security reasons.
@@ -54,47 +74,24 @@ Before running the server, you need to create a `.netapp` file in your home dire
 
    - On Windows, you can set the file permissions through the file properties dialog.
 
-### Examples Folder
+>[!TIP]
+>There is an `Examples` folder in the repository that contains a `.netapp.example` file. This file provides examples of how your `.netapp` file should look. You can use this as a reference when creating your own `.netapp` file.
 
-There is an `Examples` folder in the repository that contains a `.netapp.example` file. This file provides an example of how your `.netapp` file should look. You can use this as a reference when creating your own `.netapp` file.
+### Running with uvx
 
-### Cloning the Repository
-
-1. Clone the repository:
-
-    ```sh
-    git clone https://bitbucket.ngage.netapp.com/scm/sie-bb/netapp_mcp_server.git
-    cd netapp_mcp_server
-    ```
-
-### Ensuring `uv` Package is Installed
-
-2. Install `uv` if not already installed:
-
-    Follow [these](https://docs.astral.sh/uv/getting-started/installation/#pypi) instructions to install uv/ uvx
-
-### Installing Python dependencies
-
-3. Install Python dependencies:
-
-    `uv` will automatically install all dependencies when you run any project command. However, to ensure that your package is installed correctly, run:
+You can run the MCP server instantly, without installing anything globally:
 
     ```sh
-    pip install .
+    uvx --from netapp-data-engine-mcp server
     ```
 
-### To run the modelcontextprotocol server
+- `server` script launches the MCP server
 
-4. Run mcp server:
+### Troubleshooting
 
-    ```sh
-    server
-    ```
+- Ensure your .netapp file is present and correctly formatted.
+- Check that Python 3.10+ is installed 
 
-### To run the modelcontextprotocol inspector with a running server
+### License
 
-5. Run mcp inspector with a running server:
-
-    ```sh
-    inspector
-    ```
+Distributed under the terms of the BSD 3-Clause License (see the `LICENSE` file in the repository).

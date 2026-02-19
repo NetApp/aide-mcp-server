@@ -1,5 +1,5 @@
 [project]
-name = "netapp_mcp_server"
+name = "netapp-data-engine-mcp"
 version = "0.1.0"
 description = "MCP server with custom AIDP RAG search functionality"
 readme = "README.md"
@@ -10,10 +10,16 @@ authors = [
 dependencies = [
     "fastmcp",
 ]
+license = { file="LICENSE" }
+
+[build-system]
+requires = [
+    "setuptools>=61.0.0", 
+    "wheel"]
+build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["."]
 
 [project.scripts]
-server = "scripts.scripts:server"
-inspector = "scripts.scripts:inspector"
+server = "netapp_rag_server.main:main"
