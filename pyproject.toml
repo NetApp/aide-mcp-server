@@ -8,7 +8,7 @@ authors = [
     { name = "Shreya Menneni", email = "Shreya.Menneni@netapp.com" }
 ]
 dependencies = [
-    "fastmcp",
+    "fastmcp>=3.0",
 ]
 license = { file="LICENSE" }
 
