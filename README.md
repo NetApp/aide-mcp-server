@@ -2,7 +2,7 @@
 
 ## Description
 
-`netapp-data-engine-mcp` is an MCP server (Python package) with custom AIDP RAG (Retrieval-Augmented Generation) search functionality. The server exposes a tool called `netapp_data_engine_search` for use in LLM workflows.
+`netapp-data-engine-mcp` is an MCP server (Python package) with custom AIDE RAG (Retrieval-Augmented Generation) search functionality. The server exposes a tool called `netapp_data_engine_search` for use in LLM workflows.
 
 >[!NOTE]
 >This MCP server uses the stdio transport, as shown in the [MCP Server Quickstart](https://modelcontextprotocol.io/quickstart/server), making it a "local MCP server". 
@@ -79,13 +79,13 @@ Before running the server, you need to create a `.netapp` file in your home dire
 
 ### Running with uvx
 
-You can run the MCP server instantly, without installing anything globally:
+You can run the MCP server from your local project directory without installing anything globally:
 
     ```sh
-    uvx --from netapp-data-engine-mcp server
+    uvx --from . server
     ```
 
-- `server` script launches the MCP server
+This command finds the project in the current directory (`.`) and runs the `server` script.
 
 ### Troubleshooting
 

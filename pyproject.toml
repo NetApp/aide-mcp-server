@@ -1,11 +1,12 @@
 [project]
 name = "netapp-data-engine-mcp"
-version = "0.1.0"
+version = "0.2.0"
 description = "MCP server with custom AIDP RAG search functionality"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.13"
 authors = [
-    { name = "Shreya Menneni", email = "Shreya.Menneni@netapp.com" }
+    { name = "Shreya Menneni", email = "Shreya.Menneni@netapp.com" },
+    { name = "Rom Adams", email = "rom.adams@netapp.com" }
 ]
 dependencies = [
     "fastmcp>=3.0.2",
