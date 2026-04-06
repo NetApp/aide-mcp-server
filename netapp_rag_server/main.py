@@ -11,7 +11,7 @@ from .config import load_credentials
 mcp = FastMCP("NetApp MCP server for NetApp AI Data Engine")
 
 # Register the tool
-mcp.tool() (netapp_data_engine_search)
+mcp.tool()(netapp_data_engine_search)
 
 def main():
     
