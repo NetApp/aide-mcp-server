@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aide-mcp-server
+  labels:
+    app: aide-mcp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aide-mcp-server
+  template:
+    metadata:
+      labels:
+        app: aide-mcp-server
+    spec:
+      containers:
+      - name: server
+        image: ghcr.io/netapp/aide-mcp-server:0.2.0
+        
+        # Critical for stdio transport
+        # Akin to the docker '-i' flag, ensuring STDIN remains open for MCP communication
+        stdin: true
+        
+        volumeMounts:
+        - name: config-volume
+          # Target path in the container
+          mountPath: /config/.netapp
+          # Mount just the file, not overwriting the entire directory
+          subPath: .netapp
+          readOnly: true
+          
+      volumes:
+      - name: config-volume
+        secret:
+          secretName: aide-mcp-config
