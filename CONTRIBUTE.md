@@ -87,12 +87,26 @@ You can run the MCP server from your local project directory without installing 
 
 This command finds the project in the current directory (`.`) and runs the `server` script.
 
-### Build a container image
+### Build a container image locally
 To build the container image locally with your latest changes:
 
 ```sh
 docker compose -f docker-compose-build.yml build
 ```
+
+### Publish a release image
+The project is configured with a GitHub Actions workflow to automatically build and publish the container image to the GitHub Container Registry (`ghcr.io`).
+
+To trigger a release build and publish a new image version:
+1. Update `pyproject.toml` version if necessary.
+2. Commit your changes and push them to the repository.
+3. Create and push a new Git tag using semantic versioning prefixed with `v` (e.g., `v0.2.1`):
+   ```sh
+   git tag v0.2.1
+   git push origin v0.2.1
+   ```
+
+The GitHub Actions pipeline will intercept the tag, build the container image, and seamlessly publish it to `ghcr.io/netapp/aide-mcp-server:0.2.1`.
 
 
 ### Troubleshooting
