@@ -1,6 +1,9 @@
 # Deploying to Kubernetes
 This guide walks you through deploying the `aide-mcp-server` to a Kubernetes cluster and securely accessing it using local Agentic LLM clients like Claude Desktop and Gemini CLI.
 
+> [!WARNING]
+> This is not suitable for production-grade environment. It is only intended for demo purposes till the HTTP Streamable MCP server code is ready.
+
 ## Step 1: Configure the Secret
 The MCP server requires the `.netapp` configuration securely loaded via a Kubernetes Secret rather than baking it into the image. 
 
