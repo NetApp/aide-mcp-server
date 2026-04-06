@@ -1,3 +1,5 @@
+# Copyright 2026 NetApp, Inc. All Rights Reserved.
+
 # Use an official Python runtime as a parent image
 FROM python:3.13-slim
 
