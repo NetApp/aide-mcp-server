@@ -111,7 +111,7 @@ The GitHub Actions pipeline will intercept the tag, build the container image, a
 
 ### Troubleshooting
 - Ensure your .netapp file is present and correctly formatted.
-- Check that Python 3.10+ is installed 
+- Check that Python 3.13+ is installed 
 
 ### License
 Distributed under the terms of the BSD 3-Clause License (see the `LICENSE` file in the repository).
