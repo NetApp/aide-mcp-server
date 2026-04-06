@@ -1,7 +1,7 @@
 # Copyright 2026 NetApp, Inc. All Rights Reserved.
 # Entry point to setup and run the MCP server
 import sys
-import os
+# import os
 import logging
 from fastmcp import FastMCP
 from .tools import netapp_data_engine_search
