@@ -9,7 +9,7 @@ the open source code repositories managed through our GitHub organizations, such
 If you believe you have found a potential security vulnerability in any NetApp-owned repository,
 please report it to us through coordinated disclosure. 
 
-**Please do not report security vulnerability through public GitHub issues, discussions, or pull requests** 
+**Please do not report security vulnerabilities through public GitHub issues, discussions, or pull requests.** 
 
 Instead, please send an email to **ng-innovation-labs-git[@]netapp.com**. 
 
