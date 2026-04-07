@@ -1,4 +1,4 @@
-# Contribute to NetApp MCP Server for NetApp AI Data Engine
+# NetApp MCP Server for NetApp AI Data Engine
 
 ## Description
 `aide-mcp-server` is an MCP server (Python package) to access the NetApp AI Data Engine (AIDE) capabilities via MCP tools, like:
@@ -7,14 +7,15 @@
 >[!NOTE]
 >This MCP server uses the stdio transport, as shown in the [MCP Server Quickstart](https://modelcontextprotocol.io/quickstart/server), making it a "local MCP server". 
 
+## Running from Sources
+
 ### Prerequisites
 - Python >= 3.13
 - uvx (manages all installations automatically)
-- Container: Docker or a compatible tool like Podman.
 
 ### Configuration
 Before running the server, you need to create a `.netapp` file with the necessary configuration.
-When running locally via `uvx` directly, the file is expected in your home directory `~/.netapp`. However, when using containers, it should be passed securely via a Docker volume or a Kubernetes Secret.
+When running locally via `uvx` directly, the file is expected in your home directory `~/.netapp`.  
 
 1. **Create the `.netapp` file**:
    - Open a terminal or file explorer.
@@ -69,16 +70,6 @@ When running locally via `uvx` directly, the file is expected in your home direc
      chmod 600 ~/.netapp
      ```
 
-If you are developing locally and want to test inside a container, use the development compose file:
-
-     ```sh
-     docker compose -f docker-compose-build.yml run -i --rm aide-mcp-server
-     ```
-   - On Windows, you can set the file permissions through the file properties dialog.
-
->[!TIP]
->There is an `Examples` folder in the repository that contains a `.netapp.example` file. This file provides examples of how your `.netapp` file should look. You can use this as a reference when creating your own `.netapp` file.
-
 ### Running with uvx
 You can run the MCP server from your local project directory without installing anything globally:
 
@@ -87,28 +78,6 @@ You can run the MCP server from your local project directory without installing 
     ```
 
 This command finds the project in the current directory (`.`) and runs the `server` script.
-
-### Build a container image locally
-To build the container image locally with your latest changes:
-
-```sh
-docker compose -f docker-compose-build.yml build
-```
-
-### Publish a release image
-The project is configured with a GitHub Actions workflow to automatically build and publish the container image to the GitHub Container Registry (`ghcr.io`).
-
-To trigger a release build and publish a new image version:
-1. Update `pyproject.toml` version if necessary.
-2. Commit your changes and push them to the repository.
-3. Create and push a new Git tag using semantic versioning prefixed with `v` (e.g., `v0.2.1`):
-   ```sh
-   git tag v0.2.1
-   git push origin v0.2.1
-   ```
-
-The GitHub Actions pipeline will intercept the tag, build the container image, and seamlessly publish it to `ghcr.io/netapp/aide-mcp-server:0.2.1`.
-
 
 ### Troubleshooting
 - Ensure your .netapp file is present and correctly formatted.

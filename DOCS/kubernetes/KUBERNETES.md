@@ -3,6 +3,7 @@ This guide walks you through deploying the `aide-mcp-server` to a Kubernetes clu
 
 > [!WARNING]
 > This is not suitable for production-grade environment. It is only intended for demo purposes till the HTTP Streamable MCP server code is ready.
+> Leverage [UVX](https://github.com/modelcontextprotocol/uvx) to run the server locally instead.
 
 ## Step 1: Configure the Secret
 The MCP server requires the `.netapp` configuration securely loaded via a Kubernetes Secret rather than baking it into the image. 
@@ -16,7 +17,7 @@ The MCP server requires the `.netapp` configuration securely loaded via a Kubern
 
 ## Step 2: Deploy the Server
 
-The deployment manifest provisions the server, securely mounting the Secret to `/config/.netapp` and keeping the standard input (`stdin`) open for client connections.
+The deployment manifest provisions the Kubernetes sandbox, securely mounting the Secret to `/config/.netapp`. To cleanly support multi-agent execution, the pod is configured to natively idle rather than booting the server automatically. The actual Python MCP processes are dynamically spawned per-client when they connect!
 
 1. Review `deployment.yaml`.
 2. Apply the deployment:

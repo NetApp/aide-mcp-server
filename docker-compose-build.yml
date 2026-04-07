@@ -2,7 +2,7 @@
 
 services:
   aide-setup:
-    image: alpine:latest
+    image: alpine:3.23
     volumes:
       - netapp_config:/config
       - ./.netapp:/tmp/.netapp:ro

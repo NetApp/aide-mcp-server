@@ -9,10 +9,15 @@ Additional tools will be added in the future.
 >[!NOTE]
 >This MCP server uses the stdio transport, as shown in the [MCP Server Quickstart](https://modelcontextprotocol.io/quickstart/server), making it a local-first MCP server for Agentic workflows with Claude Code, Copilot CLI, Gemini CLI, and others.
 
-## Documentation
+## Deployments
+### Running from Sources
+See [LOCAL-UVX](DOCS/local-uvx.md) for deployment and usage instructions.   
 
-See [DOCKER](DOCS/docker/DOCKER.md) and [KUBERNETES](DOCS/kubernetes/KUBERNETES.md) for deployment and usage instructions.
+### Docker/Podman
+See [DOCKER](DOCS/docker/DOCKER.md) for deployment and usage instructions.   
+
+### Kubernetes
+See [KUBERNETES](KUBERNETES.md) for deployment and usage instructions.   
 
 ### License
-
 Distributed under the terms of the BSD 3-Clause License (see the `LICENSE` file in the repository).

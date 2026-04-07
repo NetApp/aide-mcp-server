@@ -1,14 +1,12 @@
-## Quick Start
-
-### Prerequisites
-* Container runtime: Docker or compatible tool like Podman.
-
-### Configuration
-Before running the server, you need to create a `.netapp` file in your home directory with the necessary configuration.
+# Deploying to Docker/Podman
+This guide walks you through deploying the `aide-mcp-server` to a Docker/Podman container and securely accessing it using local Agentic LLM clients like Claude Desktop and Gemini CLI.
 
 > [!WARNING]
-> For security reasons, the required `.netapp` configuration file should never be baked into the container image.
-> It should be securely provided at runtime using Docker Compose secrets (for local development) or a Kubernetes Secret (for deployment).
+> This is not suitable for production-grade environment. It is only intended for demo purposes till the HTTP Streamable MCP server code is ready.
+> Leverage [UVX](https://github.com/modelcontextprotocol/uvx) to run the server locally instead.
+
+## Step 1: Configure the Secret
+Before running the server, you need to create a `.netapp` file with the necessary configuration in the root folder of this project.
 
 1. **Create a directory for the MCP server**:
    ```sh
@@ -72,26 +70,66 @@ Before running the server, you need to create a `.netapp` file in your home dire
 >[!TIP]
 >There is an `Examples` folder in the repository that contains a `.netapp.example` file. This file provides examples of how your `.netapp` file should look. You can use this as a reference when creating your own `.netapp` file.
 
-### Running with Docker Compose (Recommended)
+## Step 2: Connecting Local LLM Clients
+Because this server operates over the `stdio` transport, your local LLM clients will connect by executing a `docker compose` tunnel into the container runtime. This ensures a raw, bidirectional JSON-RPC connection.
 
-Using `docker-compose.yml` abstracts away volume mounting complexities and relies on Compose `secrets` to directly and securely handle the configuration permissions.
+> [!IMPORTANT]
+> Ensure that the machine running these clients has Docker or Podman installed. You must provide the absolute path to your `docker-compose.yml` file using the `-f` argument so the agent can find it regardless of where it starts from.
 
-1. **Ensure your configuration is ready**:
-   Make sure you have created your `.netapp` file in the root of the project directory.
+### Connecting Claude Desktop
+Configure Claude to spawn and connect to the local container process natively.
 
-2. **Run the MCP Server via Compose**:
-   Because the MCP server uses `stdio` for its transport protocol, do not use `docker compose up` (which prefixes and breaks JSON-RPC output). Instead, use `run` which passes streams raw:
+1. Open your Claude Desktop configuration file:
+   - **Mac**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+2. Add the following execution definition (update `/absolute/path/to/` to where you saved the directory):
 
-   ```sh
-   docker compose run -i --rm aide-mcp-server
-   ```
+```json
+{
+  "mcpServers": {
+    "netapp-aide-docker": {
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        "/absolute/path/to/aide-search-mcp/docker-compose.yml",
+        "run",
+        "-i",
+        "--rm",
+        "aide-mcp-server"
+      ]
+    }
+  }
+}
+```
+3. Restart Claude Desktop. The `netapp_data_engine_search` tool will be bridged and available!
 
-> [!NOTE]
-> - The `-i` flag is critical to keep STDIN open for the server's `stdio` transport protocol.
-> - The `--rm` flag automatically cleans up the container when it exits.
-> - You can swap `docker compose` with `podman-compose` if Podman is your container engine.
+### Connecting Gemini CLI
 
+If you are using the Gemini CLI with MCP plugins, configure the server execution bridge identically to point through `docker compose`. 
 
-### Troubleshooting
+In your Gemini CLI `mcp.json` or equivalent configuration file, define the server as:
+
+```json
+{
+  "mcpServers": {
+    "netapp-aide-docker": {
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        "/absolute/path/to/aide-search-mcp/docker-compose.yml",
+        "run",
+        "-i",
+        "--rm",
+        "aide-mcp-server"
+      ]
+    }
+  }
+}
+```
+*(Swap `"docker"` for `"podman"` in the `command` field if you use the Podman runtime).*
+
+## Step 3: Troubleshooting
 - Ensure your .netapp file is present and correctly formatted.
 - Ensure your container runtime is working.

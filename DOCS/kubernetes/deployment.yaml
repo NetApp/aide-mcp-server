@@ -19,6 +19,10 @@ spec:
       containers:
       - name: server
         image: ghcr.io/netapp/aide-mcp-server:0.2.0
+
+        # Override the container default to idle securely.
+        # The true MCP server processes are spawned dynamically via kubectl exec.
+        command: ["/bin/sh", "-c", "exec tail -f /dev/null"]
         
         # Critical for stdio transport
         # Akin to the docker '-i' flag, ensuring STDIN remains open for MCP communication

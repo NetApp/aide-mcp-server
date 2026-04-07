@@ -14,14 +14,11 @@ ENV HOME=/config \
 # Create a non-root user to run the application
 RUN useradd --create-home --home-dir /app appuser
 
-# Install dependencies
-# Install uv first, then use it to install project dependencies from pyproject.toml
+# Copy the application source code into the container and install dependencies
 COPY pyproject.toml .
+COPY netapp_rag_server/ ./netapp_rag_server/
 RUN pip install --no-cache-dir uv && \
     uv pip install --system .
-
-# Copy the application source code into the container
-COPY netapp_rag_server/ ./netapp_rag_server/
 
 # Create the config directory
 RUN mkdir -p /config
