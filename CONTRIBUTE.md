@@ -63,10 +63,14 @@ When running locally via `uvx` directly, the file is expected in your home direc
 
 3. **Set file permissions**:
    - Ensure that the `.netapp` file is not readable by other users/groups for security reasons.
-   - On Unix-like systems, you can set the permissions using the following command:
+   - On Unix-like systems, set the permissions for the `.netapp` file you created:
 
      ```sh
+     # Local uvx workflow
      chmod 600 ~/.netapp
+
+     # Container/dev compose workflow with .netapp in the project root
+     chmod 600 .netapp
      ```
 
 If you are developing locally and want to test inside a container, use the development compose file:
