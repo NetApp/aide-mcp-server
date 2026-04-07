@@ -11,7 +11,7 @@ Additional tools will be added in the future.
 
 ## Deployments
 ### Running from Sources
-See [LOCAL-UVX](DOCS/local-uvx.md) for deployment and usage instructions.   
+See [UVX](DOCS/UVX.md) for deployment and usage instructions.   
 
 ### Docker/Podman
 See [DOCKER](DOCS/docker/DOCKER.md) for deployment and usage instructions.   

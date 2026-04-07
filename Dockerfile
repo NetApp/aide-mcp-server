@@ -6,8 +6,7 @@ FROM python:3.13-slim
 # Set the working directory in the container
 WORKDIR /app
 
-# Set the home directory to the working directory.
-# The application looks for the .netapp file in the user's home directory.
+# Set the home directory to the /config directory where the .netapp file is mounted.
 ENV HOME=/config \
     PATH="/usr/local/bin:$PATH" 
 

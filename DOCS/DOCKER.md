@@ -6,7 +6,7 @@ This guide walks you through deploying the `aide-mcp-server` to a Docker/Podman 
 > Leverage [UVX](https://github.com/modelcontextprotocol/uvx) to run the server locally instead.
 
 ## Step 1: Configure the Secret
-Before running the server, you need to create a `.netapp` file with the necessary configuration in the root folder of this project.
+Before running the server, you need to create a `.netapp` file with the necessary configuration.
 
 1. **Create a directory for the MCP server**:
    ```sh
@@ -14,7 +14,7 @@ Before running the server, you need to create a `.netapp` file with the necessar
    ```
 
 2. **Create your `.netapp` configuration file**:
-   - Create a file named `.netapp` in the root folder of this project.
+   - Create a file named `.netapp` in the `~/netapp-aide-mcp-server` directory.
 
 3. **Add the JSON configuration**:
    - Open the `.netapp` file in a text editor.
