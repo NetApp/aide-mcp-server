@@ -15,6 +15,7 @@ RUN useradd --create-home --home-dir /app appuser
 
 # Copy the application source code into the container and install dependencies
 COPY pyproject.toml .
+COPY README.md .
 COPY netapp_rag_server/ ./netapp_rag_server/
 RUN pip install --no-cache-dir uv && \
     uv pip install --system .
