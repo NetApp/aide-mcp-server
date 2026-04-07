@@ -8,21 +8,21 @@ This guide walks you through deploying the `aide-mcp-server` to a Kubernetes clu
 ## Step 1: Configure the Secret
 The MCP server requires the `.netapp` configuration securely loaded via a Kubernetes Secret rather than baking it into the image. 
 
-1. Open `secret.yaml`.
+1. Open `secret.yml`.
 2. Update the JSON block under the `stringData` section to include your specific authentication details (like your `client_id` and endpoints).
 3. Apply the secret to your cluster:
    ```sh
-   kubectl apply -f secret.yaml
+   kubectl apply -f secret.yml
    ```
 
 ## Step 2: Deploy the Server
 
 The deployment manifest provisions the Kubernetes sandbox, securely mounting the Secret to `/config/.netapp`. To cleanly support multi-agent execution, the pod is configured to natively idle rather than booting the server automatically. The actual Python MCP processes are dynamically spawned per-client when they connect!
 
-1. Review `deployment.yaml`.
+1. Review `deployment.yml`.
 2. Apply the deployment:
    ```sh
-   kubectl apply -f deployment.yaml
+   kubectl apply -f deployment.yml
    ```
 3. Verify that the server pod is ready:
    ```sh
