@@ -1,7 +1,7 @@
 # NetApp MCP Server for AI Data Engine (AIDE)
 
 ## Description
-`aide-mcp-server` is an MCP server (Python package) to access the NetApp AI Data Engine (AIDE) capabilities via MCP tools, like:
+`netapp-data-engine-mcp` is an MCP server (Python package) to access the NetApp AI Data Engine (AIDE) capabilities via MCP tools, like:
 -  The `netapp_data_engine_search` tool for RAG (Retrieval-Augmented Generation) search functionality.
 
 Additional tools will be added in the future.
