@@ -103,15 +103,12 @@ docker compose -f docker-compose-build.yml build
 The project is configured with a GitHub Actions workflow to automatically build and publish the container image to the GitHub Container Registry (`ghcr.io`).
 
 To trigger a release build and publish a new image version:
-1. Update `pyproject.toml` version if necessary.
+1. Update the version in `pyproject.toml` to the release version. The container image version is expected to match this Python package version.
 2. Commit your changes and push them to the repository.
-3. Create and push a new Git tag using semantic versioning prefixed with `v` (e.g., `v0.2.1`):
+3. Create and push a new Git tag using the same semantic version, prefixed with `v` (for example, if `pyproject.toml` is `0.1.1`, use `v0.1.1`):
    ```sh
-   git tag v0.2.1
-   git push origin v0.2.1
-   ```
-
-The GitHub Actions pipeline will intercept the tag, build the container image, and seamlessly publish it to `ghcr.io/netapp/aide-mcp-server:0.2.1`.
+   git tag v0.1.1
+   git push origin v0.1.1
 
 
 ### Troubleshooting
