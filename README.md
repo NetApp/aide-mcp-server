@@ -25,13 +25,14 @@ Before running the server, you need to create a `.netapp` file in your home dire
 
 2. **Add the JSON configuration**:
    - Open the `.netapp` file in a text editor.
-   - Add the following JSON configuration, replacing the example values with your own:
+   - Add the following JSON configuration, replacing the example values with your own.
+   - The server supports three endpoint profiles depending on your access level:
 
-    For PKCE flow: *(Recommended if you have a browser available on your machine)*
+    **Search-only** — you only have a search endpoint URL (PKCE auth flow shown):
 
      ```json
      {
-       "rag_search_api_endpoint_url": "https://example.com/api",
+       "rag_search_api_endpoint_url": "https://<data-services-host>/api/data-engine/workspaces/<workspace-uuid>/data-collections/<datacollection-uuid>/search",
        "verify_ssl": true,
        "auth_flow": "pkce",
        "token_request_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/authorize",
@@ -46,11 +47,12 @@ Before running the server, you need to create a `.netapp` file in your home dire
      }
      ```
 
-    For device code flow: *(Use this if you do not have a browser on your machine. A short code will be printed in the logs — copy it, open the provided verification URL on any device, and enter the code to complete authentication.)*
+    **Full access** — you have access to both the cluster management and data services interfaces (device code auth flow shown):
 
      ```json
      {
-       "rag_search_api_endpoint_url": "https://example.com/api",
+       "base_url": "https://<cluster-mgmt-host>/api",
+       "data_services_base_url": "https://<data-services-host>/api",
        "verify_ssl": true,
        "auth_flow": "device_code",
        "device_code_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/devicecode",
@@ -62,7 +64,7 @@ Before running the server, you need to create a `.netapp` file in your home dire
      }
      ```
 
-  >Only PKCE (web-based) and Device Code flows are supported.
+   > At least one of `base_url`, `data_services_base_url`, or `rag_search_api_endpoint_url` must be present. Only PKCE (web-based) and Device Code auth flows are supported. See `Examples/.netapp.example` for all three profiles with detailed explanations.
 
 3. **Set file permissions**:
    - Ensure that the `.netapp` file is not readable by other users/groups for security reasons.
