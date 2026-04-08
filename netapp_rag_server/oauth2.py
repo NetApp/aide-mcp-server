@@ -10,8 +10,99 @@ import urllib.parse
 import webbrowser
 import httpx
 
-# In-memory cache for storing the OAuth2 access token and its expiry time
-_token_cache = {}
+# In-memory cache: access_token, refresh_token (optional), expires_at, issued_at, ttl_seconds
+_token_cache: dict = {}
+
+# Cache keys that already logged the missing-refresh warning (avoids repeating the same log line).
+_warned_no_refresh: set = set()
+
+
+def _get_cache_key(config: dict) -> str:
+    # One key per auth flow and client so PKCE and device_code sessions stay separate.
+    auth_flow = config.get("auth_flow")
+    if auth_flow == "pkce":
+        authorization_endpoint = config["token_request_endpoint_url"]
+        web_auth = config["token_request_params"]
+        return f"token_{hash((authorization_endpoint, web_auth.get('client_id'), 'web'))}"
+    if auth_flow == "device_code":
+        token_endpoint = config["token_request_endpoint_url"]
+        device_endpoint = config["device_code_endpoint_url"]
+        device_auth = config["token_request_params"]
+        return f"token_{hash((token_endpoint, device_endpoint, device_auth.get('client_id'), 'device_code'))}"
+    raise ValueError("auth_flow must be pkce or device_code.")
+
+
+def _get_token_endpoint(config: dict) -> str:
+    # Resolves the POST URL for authorization-code exchange and refresh_token grants.
+    auth_flow = config["auth_flow"]
+    if auth_flow == "pkce":
+        authorization_endpoint = config["token_request_endpoint_url"]
+        return config.get("token_exchange_endpoint_url") or authorization_endpoint.replace(
+            "/authorize", "/token"
+        )
+    if auth_flow == "device_code":
+        return config["token_request_endpoint_url"]
+    raise ValueError("auth_flow must be pkce or device_code.")
+
+
+def _store_token_response(cache_key: str, body: dict) -> None:
+    # Writes token fields into the cache; keeps the previous refresh_token if the body omits it.
+    expires_in = int(body.get("expires_in", 3599))
+    now = time.time()
+    old = _token_cache.get(cache_key, {})
+    new_refresh = body.get("refresh_token")
+    refresh_token = new_refresh if new_refresh is not None else old.get("refresh_token")
+
+    _token_cache[cache_key] = {
+        "access_token": body["access_token"],
+        "refresh_token": refresh_token,
+        "expires_at": now + expires_in,
+        "issued_at": now,
+        "ttl_seconds": expires_in,
+    }
+
+    if not refresh_token and cache_key not in _warned_no_refresh:
+        logging.warning(
+            "OAuth token response had no refresh_token; you will need to restart the "
+            "server after the access token expires."
+        )
+        _warned_no_refresh.add(cache_key)
+
+
+def _cached_access_valid(cache_key: str) -> bool:
+    # True while the access token is not within five minutes of expiry.
+    token_data = _token_cache.get(cache_key)
+    if not token_data:
+        return False
+    return time.time() < token_data["expires_at"] - 300
+
+
+async def _refresh_access_token(config: dict, cache_key: str, refresh_token: str) -> None:
+    # POSTs grant_type=refresh_token and replaces cache contents from the JSON response.
+    token_endpoint = _get_token_endpoint(config)
+    params = config["token_request_params"]
+    data = {
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token,
+        "client_id": params["client_id"],
+    }
+    if params.get("scope"):
+        data["scope"] = params["scope"]
+    if params.get("client_secret"):
+        data["client_secret"] = params["client_secret"]
+
+    async with httpx.AsyncClient(verify=config["verify_ssl"]) as client:
+        response = await client.post(
+            token_endpoint,
+            data=data,
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+
+    if response.status_code != 200:
+        raise Exception(f"Token refresh failed: {response.status_code} - {response.text}")
+
+    _store_token_response(cache_key, response.json())
+
 
 def _start_local_callback_server(redirect_uri: str):
     parsed = urllib.parse.urlparse(redirect_uri)
@@ -57,47 +148,94 @@ def _start_local_callback_server(redirect_uri: str):
     thread.start()
     return event, result, server
 
-async def get_access_token(config):
 
-    """
+async def authenticate_eagerly(config: dict) -> None:
+    """Runs interactive OAuth2 once so the token cache is populated before MCP serves requests."""
+    await get_access_token(config)
 
-    Acquires an OAuth2 token using the provided config.
-    Caches the token until it is close to expiration.
-    
-    Args:
-        config (dict): The configuration dictionary loaded from .netapp.
 
-    Returns:
-        str: The access token string
+def start_token_refresh_loop(config: dict) -> asyncio.Task:
+    """Starts a background coroutine that refreshes the access token before it expires."""
+    # Runs on the same asyncio loop as the MCP server; cancel when the transport stops.
+    return asyncio.create_task(_token_refresh_background(config), name="oauth_token_refresh")
 
-    Raises:
-        Exception: If the token request failes or the response is invalid
-    
-    """
 
+async def _token_refresh_background(config: dict) -> None:
+    cache_key = _get_cache_key(config)
+    try:
+        while True:
+            token_data = _token_cache.get(cache_key)
+            if not token_data:
+                # No tokens yet (e.g. race at startup); retry shortly.
+                await asyncio.sleep(30)
+                continue
+
+            if not token_data.get("refresh_token"):
+                # IdP did not issue a refresh token; nothing to renew until the next login.
+                await asyncio.sleep(30)
+                continue
+
+            ttl = int(token_data.get("ttl_seconds", 3600))
+            delay = max(30, int(0.8 * ttl))
+            issued_at = float(token_data.get("issued_at", time.time()))
+            next_refresh_at = issued_at + delay
+            sleep_for = max(0.0, next_refresh_at - time.time())
+            # Sleep until roughly 80% of the access token lifetime, at least 30 seconds from issue.
+            await asyncio.sleep(sleep_for)
+
+            token_data = _token_cache.get(cache_key)
+            if not token_data or not token_data.get("refresh_token"):
+                continue
+
+            try:
+                await _refresh_access_token(config, cache_key, token_data["refresh_token"])
+                logging.info("OAuth access token refreshed in the background.")
+            except Exception as e:
+                logging.error("Background token refresh failed: %s", e)
+                # Retry after a fixed backoff on network or IdP errors.
+                await asyncio.sleep(30)
+    except asyncio.CancelledError:
+        raise
+
+
+async def get_access_token(config: dict) -> str:
+    """Returns a valid access token from cache, refresh, or interactive login."""
     auth_flow = config.get("auth_flow")
-
     if not auth_flow:
         raise Exception("Missing required auth_flow. Use 'pkce' or 'device_code'.")
+    if auth_flow not in {"pkce", "device_code"}:
+        raise Exception("Unsupported auth_flow. Use 'pkce' or 'device_code'.")
 
+    cache_key = _get_cache_key(config)
+
+    # Return immediately if the cached access token is still valid.
+    if _cached_access_valid(cache_key):
+        return _token_cache[cache_key]["access_token"]
+
+    td = _token_cache.get(cache_key)
+    if td and td.get("refresh_token"):
+        try:
+            # Avoid browser or device-code login when a refresh_token can extend the session.
+            await _refresh_access_token(config, cache_key, td["refresh_token"])
+            return _token_cache[cache_key]["access_token"]
+        except Exception as e:
+            logging.warning("OAuth refresh failed (%s); starting interactive login.", e)
+            del _token_cache[cache_key]
+
+    elif td:
+        # Drop expired cache rows that have no refresh_token so interactive login runs cleanly.
+        del _token_cache[cache_key]
+
+    # Browser redirect (PKCE) or device-code polling; both end in _store_token_response.
     if auth_flow == "pkce":
-        return await _get_access_token_web_based(config)
+        return await _pkce_interactive_login(config, cache_key)
+    return await _device_code_interactive_login(config, cache_key)
 
-    if auth_flow == "device_code":
-        return await _get_access_token_device_code(config)
 
-    raise Exception("Unsupported auth_flow. Use 'pkce' or 'device_code'.")
-
-async def _get_access_token_web_based(config):
-    authorization_endpoint = config['token_request_endpoint_url']
-    web_auth = config['token_request_params']
-
-    cache_key = f"token_{hash((authorization_endpoint, web_auth.get('client_id'), 'web'))}"
-
-    if cache_key in _token_cache:
-        token_data = _token_cache[cache_key]
-        if time.time() < token_data['expires_at'] - 300:
-            return token_data['access_token']
+async def _pkce_interactive_login(config: dict, cache_key: str) -> str:
+    # Authorization code + PKCE: open the browser, wait for redirect, exchange code for tokens.
+    authorization_endpoint = config["token_request_endpoint_url"]
+    web_auth = config["token_request_params"]
 
     state = secrets.token_urlsafe(16)
 
@@ -143,19 +281,16 @@ async def _get_access_token_web_based(config):
         raise Exception("Authorization code not found in redirect.")
 
     token_data = await _exchange_code_for_token(config, code, code_verifier)
+    _store_token_response(cache_key, token_data)
+    return token_data["access_token"]
 
-    expires_in = token_data.get('expires_in', 3599)
-    _token_cache[cache_key] = {
-        'access_token': token_data['access_token'],
-        'expires_at': time.time() + expires_in
-    }
 
-    return token_data['access_token']
-
-async def _exchange_code_for_token(config, code: str, code_verifier: str | None = None):
-    authorization_endpoint = config['token_request_endpoint_url']
-    token_endpoint = config.get('token_exchange_endpoint_url') or authorization_endpoint.replace("/authorize", "/token")
-    web_auth = config['token_request_params']
+async def _exchange_code_for_token(config: dict, code: str, code_verifier: str | None = None):
+    authorization_endpoint = config["token_request_endpoint_url"]
+    token_endpoint = config.get("token_exchange_endpoint_url") or authorization_endpoint.replace(
+        "/authorize", "/token"
+    )
+    web_auth = config["token_request_params"]
 
     data = {
         "grant_type": "authorization_code",
@@ -173,11 +308,11 @@ async def _exchange_code_for_token(config, code: str, code_verifier: str | None 
     if code_verifier:
         data["code_verifier"] = code_verifier
 
-    async with httpx.AsyncClient(verify=config['verify_ssl']) as client:
+    async with httpx.AsyncClient(verify=config["verify_ssl"]) as client:
         response = await client.post(
             token_endpoint,
             data=data,
-            headers={"Content-Type": "application/x-www-form-urlencoded"}
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
 
         if response.status_code != 200:
@@ -185,37 +320,32 @@ async def _exchange_code_for_token(config, code: str, code_verifier: str | None 
 
         return response.json()
 
+
 def _generate_code_verifier() -> str:
     return secrets.token_urlsafe(64)
+
 
 def _generate_code_challenge(verifier: str) -> str:
     digest = hashlib.sha256(verifier.encode("utf-8")).digest()
     return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("utf-8")
 
-async def _get_access_token_device_code(config):
-    token_endpoint = config['token_request_endpoint_url']
-    device_endpoint = config['device_code_endpoint_url']
-    device_auth = config['token_request_params']
 
-    cache_key = f"token_{hash((token_endpoint, device_endpoint, device_auth.get('client_id'), 'device_code'))}"
+async def _device_code_interactive_login(config: dict, cache_key: str) -> str:
+    # RFC 8628: show user code / verification URI, poll the token endpoint until authorized.
+    token_endpoint = config["token_request_endpoint_url"]
+    device_endpoint = config["device_code_endpoint_url"]
+    device_auth = config["token_request_params"]
 
-    if cache_key in _token_cache:
-        token_data = _token_cache[cache_key]
-        if time.time() < token_data['expires_at'] - 300:
-            return token_data['access_token']
-
-    data = {
-        "client_id": device_auth["client_id"]
-    }
+    data = {"client_id": device_auth["client_id"]}
 
     if device_auth.get("scope"):
         data["scope"] = device_auth["scope"]
 
-    async with httpx.AsyncClient(verify=config['verify_ssl']) as client:
+    async with httpx.AsyncClient(verify=config["verify_ssl"]) as client:
         response = await client.post(
             device_endpoint,
             data=data,
-            headers={"Content-Type": "application/x-www-form-urlencoded"}
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
 
         if response.status_code != 200:
@@ -251,27 +381,23 @@ async def _get_access_token_device_code(config):
         token_request = {
             "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
             "device_code": device_code,
-            "client_id": device_auth["client_id"]
+            "client_id": device_auth["client_id"],
         }
 
         if device_auth.get("client_secret"):
             token_request["client_secret"] = device_auth["client_secret"]
 
-        async with httpx.AsyncClient(verify=config['verify_ssl']) as client:
+        async with httpx.AsyncClient(verify=config["verify_ssl"]) as client:
             response = await client.post(
                 token_endpoint,
                 data=token_request,
-                headers={"Content-Type": "application/x-www-form-urlencoded"}
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
             )
 
         if response.status_code == 200:
             token_data = response.json()
-            expires_in_token = token_data.get('expires_in', 3599)
-            _token_cache[cache_key] = {
-                'access_token': token_data['access_token'],
-                'expires_at': time.time() + expires_in_token
-            }
-            return token_data['access_token']
+            _store_token_response(cache_key, token_data)
+            return token_data["access_token"]
 
         try:
             error_data = response.json()
