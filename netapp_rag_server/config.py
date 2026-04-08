@@ -182,6 +182,12 @@ def load_credentials() -> dict:
     if "verify_ssl" not in config:
         raise ValueError("Missing required key 'verify_ssl' in '.netapp' file.")
 
+    if not isinstance(config["verify_ssl"], bool):
+        raise ValueError(
+            "'verify_ssl' must be a boolean (true or false) in '.netapp' file, "
+            f"got {type(config['verify_ssl']).__name__}."
+        )
+
     _validate_auth_config(config)
     _validate_and_derive_endpoints(config)
 
