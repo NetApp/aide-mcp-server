@@ -1,17 +1,17 @@
+# Copyright 2026 NetApp, Inc. All Rights Reserved.
 # Entry point to setup and run the MCP server
-
 import sys
-import os
+# import os
 import logging
 from fastmcp import FastMCP
 from .tools import netapp_data_engine_search
 from .config import load_credentials
 
 # Creates the FastMCP server instance
-mcp = FastMCP("NetApp RAG Search Server")
+mcp = FastMCP("NetApp MCP server for NetApp AI Data Engine")
 
 # Register the tool
-mcp.tool() (netapp_data_engine_search)
+mcp.tool()(netapp_data_engine_search)
 
 def main():
     
