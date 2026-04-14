@@ -57,7 +57,7 @@ Before running the server, you need to create a `.netapp` file with the necessar
 
   >Only PKCE (web-based) and Device Code flows are supported.
 
-3. **Set file permissions**:
+4. **Set file permissions**:
    - Ensure that the `.netapp` file is not readable by other users/groups for security reasons.
    - On Unix-like systems, you can set the permissions of your local file using the following command:
 
