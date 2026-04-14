@@ -15,11 +15,11 @@ _token_cache: dict = {}
 
 # Serialize refresh and interactive login per cache key so concurrent callers cannot issue duplicate refresh grants (refresh token rotation would invalidate the token after the first).
 _refresh_locks: dict[str, asyncio.Lock] = {}
-_refresh_locks_guard = threading.Lock()
+_refresh_locks_lock = asyncio.Lock()
 
 
-def _get_refresh_lock(cache_key: str) -> asyncio.Lock:
-    with _refresh_locks_guard:
+async def _get_refresh_lock(cache_key: str) -> asyncio.Lock:
+    async with _refresh_locks_lock:
         if cache_key not in _refresh_locks:
             _refresh_locks[cache_key] = asyncio.Lock()
         return _refresh_locks[cache_key]
@@ -60,14 +60,26 @@ def _get_token_endpoint(config: dict) -> str:
 
 def _store_token_response(cache_key: str, body: dict) -> None:
     # Writes token fields into the cache; keeps the previous refresh_token if the body omits it.
-    expires_in = int(body.get("expires_in", 3599))
+    raw_expires = body.get("expires_in", 3599)
+    try:
+        expires_in = int(raw_expires)
+    except (TypeError, ValueError):
+        logging.warning(
+            "OAuth token response had invalid expires_in %r; using default 3599", raw_expires
+        )
+        expires_in = 3599
+
+    access_token = body.get("access_token")
+    if not access_token:
+        raise ValueError("OAuth token response missing access_token")
+
     now = time.time()
     old = _token_cache.get(cache_key, {})
     new_refresh = body.get("refresh_token")
     refresh_token = new_refresh if new_refresh is not None else old.get("refresh_token")
 
     _token_cache[cache_key] = {
-        "access_token": body["access_token"],
+        "access_token": access_token,
         "refresh_token": refresh_token,
         "expires_at": now + expires_in,
         "issued_at": now,
@@ -193,13 +205,13 @@ async def _token_refresh_background(config: dict) -> None:
             issued_at = float(token_data.get("issued_at", time.time()))
             next_refresh_at = issued_at + delay
             sleep_for = max(0.0, next_refresh_at - time.time())
-            # If issued_at changes during the wait, something else already refreshed the token.
             issued_at_before_sleep = issued_at
-            # Wake at ~80% of access token lifetime (at least 30s after issue).
+            # Sleep until ~80% of the access token lifetime (at least 30s after issue), then
+            # re-read the cache under the lock and compare issued_at to issued_at_before_sleep.
             await asyncio.sleep(sleep_for)
 
             refresh_err: Exception | None = None
-            lock = _get_refresh_lock(cache_key)
+            lock = await _get_refresh_lock(cache_key)
             async with lock:
                 token_data = _token_cache.get(cache_key)
                 if not token_data or not token_data.get("refresh_token"):
@@ -214,6 +226,7 @@ async def _token_refresh_background(config: dict) -> None:
                     logging.error("Background token refresh failed: %s", e)
                     refresh_err = e
             if refresh_err is not None:
+                # Wait before the next background refresh attempt.
                 await asyncio.sleep(30)
     except asyncio.CancelledError:
         raise
@@ -233,7 +246,7 @@ async def get_access_token(config: dict) -> str:
     if _cached_access_valid(cache_key):
         return _token_cache[cache_key]["access_token"]
 
-    lock = _get_refresh_lock(cache_key)
+    lock = await _get_refresh_lock(cache_key)
     async with lock:
         # Re-check cache after acquiring the lock.
         if _cached_access_valid(cache_key):
