@@ -102,14 +102,28 @@ docker compose -f docker-compose-build.yml build
 ### Publish a release image
 The project is configured with a GitHub Actions workflow to automatically build and publish the container image to the GitHub Container Registry (`ghcr.io`).
 
-To trigger a release build and publish a new image version:
-1. Update the version in `pyproject.toml` to the release version. The container image version is expected to match this Python package version.
-2. Commit your changes and push them to the repository.
-3. Create and push a new Git tag using the same semantic version, prefixed with `v` (for example, if `pyproject.toml` is `0.1.1`, use `v0.1.1`):
+#### For development builds
+To trigger a development build and publish a new image version:
+1. Ensure you are checked out to the release branch, e.g., `release-v2.0.0`, by doing:
    ```sh
-   git tag v0.1.1
-   git push origin v0.1.1
+   git checkout release-v2.0.0
+   ```
+2. Create and push a new Git tag using the same semantic version, prefixed with `v` (for example, if `pyproject.toml` is `2.0.0`, use `v2.0.0`) with a commit hash postfix (for example, `v2.0.0-abc1234`):
+   ```sh
+   git rev-parse --short HEAD
+   git tag v2.0.0-abc1234
+   git push origin v2.0.0-abc1234
+   ```
 
+#### For release builds
+To trigger a release build and publish a new image version:
+1. Ensure the release branch, e.g., `release-v2.0.0`, is merged with `main`
+2. Check out to `main`
+3. Create and push a new Git tag using the same semantic version, prefixed with `v` (for example, if `pyproject.toml` is `2.0.0`, use `v2.0.0`):
+   ```sh
+   git tag v2.0.0
+   git push origin v2.0.0
+   ```
 
 ### Troubleshooting
 - Ensure your .netapp file is present and correctly formatted.

@@ -5,7 +5,8 @@ name: Build and Publish Container Image
 on:
   push:
     tags:
-      - 'v*.*.*' # Trigger purely on version tags like v0.2.0
+      - 'v*.*.*'   # Trigger on stable version tags like v0.2.0
+      - 'v*.*.*-*' # Trigger on pre-release/dev tags like v0.2.0-dev or v0.2.0-abc1234
 
 env:
   REGISTRY: ghcr.io
