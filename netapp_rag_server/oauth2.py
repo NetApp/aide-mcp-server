@@ -13,6 +13,18 @@ import httpx
 # In-memory cache: access_token, refresh_token (optional), expires_at, issued_at, ttl_seconds
 _token_cache: dict = {}
 
+# Serialize refresh and interactive login per cache key so concurrent callers cannot issue duplicate refresh grants (refresh token rotation would invalidate the token after the first).
+_refresh_locks: dict[str, asyncio.Lock] = {}
+_refresh_locks_guard = threading.Lock()
+
+
+def _get_refresh_lock(cache_key: str) -> asyncio.Lock:
+    with _refresh_locks_guard:
+        if cache_key not in _refresh_locks:
+            _refresh_locks[cache_key] = asyncio.Lock()
+        return _refresh_locks[cache_key]
+
+
 # Cache keys that already logged the missing-refresh warning (avoids repeating the same log line).
 _warned_no_refresh: set = set()
 
@@ -166,7 +178,7 @@ async def _token_refresh_background(config: dict) -> None:
         while True:
             token_data = _token_cache.get(cache_key)
             if not token_data:
-                # No tokens yet (e.g. race at startup); retry shortly.
+                # Cache empty until eager auth completes.
                 await asyncio.sleep(30)
                 continue
 
@@ -180,19 +192,27 @@ async def _token_refresh_background(config: dict) -> None:
             issued_at = float(token_data.get("issued_at", time.time()))
             next_refresh_at = issued_at + delay
             sleep_for = max(0.0, next_refresh_at - time.time())
-            # Sleep until roughly 80% of the access token lifetime, at least 30 seconds from issue.
+            # If issued_at changes during the wait, something else already refreshed the token.
+            issued_at_before_sleep = issued_at
+            # Wake at ~80% of access token lifetime (at least 30s after issue).
             await asyncio.sleep(sleep_for)
 
-            token_data = _token_cache.get(cache_key)
-            if not token_data or not token_data.get("refresh_token"):
-                continue
-
-            try:
-                await _refresh_access_token(config, cache_key, token_data["refresh_token"])
-                logging.info("OAuth access token refreshed in the background.")
-            except Exception as e:
-                logging.error("Background token refresh failed: %s", e)
-                # Retry after a fixed backoff on network or IdP errors.
+            refresh_err: Exception | None = None
+            lock = _get_refresh_lock(cache_key)
+            async with lock:
+                token_data = _token_cache.get(cache_key)
+                if not token_data or not token_data.get("refresh_token"):
+                    continue
+                if float(token_data.get("issued_at", 0)) > issued_at_before_sleep:
+                    # Token already renewed during the wait.
+                    continue
+                try:
+                    await _refresh_access_token(config, cache_key, token_data["refresh_token"])
+                    logging.info("OAuth access token refreshed in the background.")
+                except Exception as e:
+                    logging.error("Background token refresh failed: %s", e)
+                    refresh_err = e
+            if refresh_err is not None:
                 await asyncio.sleep(30)
     except asyncio.CancelledError:
         raise
@@ -212,24 +232,30 @@ async def get_access_token(config: dict) -> str:
     if _cached_access_valid(cache_key):
         return _token_cache[cache_key]["access_token"]
 
-    td = _token_cache.get(cache_key)
-    if td and td.get("refresh_token"):
-        try:
-            # Avoid browser or device-code login when a refresh_token can extend the session.
-            await _refresh_access_token(config, cache_key, td["refresh_token"])
+    lock = _get_refresh_lock(cache_key)
+    async with lock:
+        # Re-check cache after acquiring the lock.
+        if _cached_access_valid(cache_key):
             return _token_cache[cache_key]["access_token"]
-        except Exception as e:
-            logging.warning("OAuth refresh failed (%s); starting interactive login.", e)
+
+        td = _token_cache.get(cache_key)
+        if td and td.get("refresh_token"):
+            try:
+                # Avoid browser or device-code login when a refresh_token can extend the session.
+                await _refresh_access_token(config, cache_key, td["refresh_token"])
+                return _token_cache[cache_key]["access_token"]
+            except Exception as e:
+                logging.warning("OAuth refresh failed (%s); starting interactive login.", e)
+                del _token_cache[cache_key]
+
+        elif td:
+            # Drop expired cache rows that have no refresh_token so interactive login runs cleanly.
             del _token_cache[cache_key]
 
-    elif td:
-        # Drop expired cache rows that have no refresh_token so interactive login runs cleanly.
-        del _token_cache[cache_key]
-
-    # Browser redirect (PKCE) or device-code polling; both end in _store_token_response.
-    if auth_flow == "pkce":
-        return await _pkce_interactive_login(config, cache_key)
-    return await _device_code_interactive_login(config, cache_key)
+        # Browser redirect (PKCE) or device-code polling; both end in _store_token_response.
+        if auth_flow == "pkce":
+            return await _pkce_interactive_login(config, cache_key)
+        return await _device_code_interactive_login(config, cache_key)
 
 
 async def _pkce_interactive_login(config: dict, cache_key: str) -> str:
