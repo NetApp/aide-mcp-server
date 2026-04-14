@@ -30,17 +30,18 @@ _warned_no_refresh: set = set()
 
 
 def _get_cache_key(config: dict) -> str:
-    # One key per auth flow and client so PKCE and device_code sessions stay separate.
     auth_flow = config.get("auth_flow")
     if auth_flow == "pkce":
         authorization_endpoint = config["token_request_endpoint_url"]
         web_auth = config["token_request_params"]
-        return f"token_{hash((authorization_endpoint, web_auth.get('client_id'), 'web'))}"
+        client_id = web_auth.get("client_id") or ""
+        return f"pkce:{client_id}:{authorization_endpoint}"
     if auth_flow == "device_code":
         token_endpoint = config["token_request_endpoint_url"]
         device_endpoint = config["device_code_endpoint_url"]
         device_auth = config["token_request_params"]
-        return f"token_{hash((token_endpoint, device_endpoint, device_auth.get('client_id'), 'device_code'))}"
+        client_id = device_auth.get("client_id") or ""
+        return f"device_code:{client_id}:{token_endpoint}:{device_endpoint}"
     raise ValueError("auth_flow must be pkce or device_code.")
 
 
