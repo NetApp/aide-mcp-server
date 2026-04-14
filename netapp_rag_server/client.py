@@ -1,16 +1,16 @@
 """
 Shared async HTTP client for the NetApp AIDE MCP server.
 
-All HTTP concerns are centralized here:
-  - URL construction (base_url vs data_services_base_url)
-  - OAuth2 token injection
-  - SSL configuration
-  - Error parsing and exception hierarchy
-  - HTTP 202 / async-job detection
-  - Pagination cursor following
+All HTTP concerns are centralized here so that tool modules focus solely on
+parameter mapping and response formatting:
 
-Tool functions import ``aide_request`` and ``aide_request_all_pages``; they
-focus solely on parameter mapping and response formatting.
+  - URL construction (cluster-management vs. data-services interface)
+  - OAuth2 Bearer-token injection
+  - SSL / TLS verification
+  - Request timeouts
+  - ONTAP error-response parsing and exception hierarchy
+  - HTTP 202 async-job detection
+  - Pagination cursor following
 """
 
 from __future__ import annotations
@@ -44,7 +44,7 @@ class AideApiError(Exception):
     """Raised when the AIDE / ONTAP API returns an error response.
 
     Attributes:
-        code:    The error code string returned by the API (e.g. ``"404"``).
+        code:    The error code string returned by the API (e.g. ``"4"``).
         message: The human-readable error message from the API.
         target:  Optional field name / path that caused the error, if present.
     """
@@ -63,20 +63,11 @@ class AideApiError(Exception):
 def _build_url(config: dict, path: str, *, use_data_services: bool) -> str:
     """Construct the full request URL from *config* and a relative *path*.
 
-    Parameters
-    ----------
-    config:
-        Validated configuration dictionary (output of :func:`load_credentials`).
-    path:
-        Relative API path, e.g. ``"/data-engine/workspaces"``.
-    use_data_services:
-        When ``True`` use ``config["data_services_base_url"]``;
-        when ``False`` use ``config["base_url"]``.
+    When *use_data_services* is ``True`` the URL is built from
+    ``config["data_services_base_url"]`` (data-services LIF); otherwise from
+    ``config["base_url"]`` (cluster-management LIF).
 
-    Raises
-    ------
-    AideConfigError
-        If the required base-URL key is absent from the config.
+    Raises :class:`AideConfigError` if the required key is missing.
     """
     if use_data_services:
         base = config.get("data_services_base_url")
@@ -98,9 +89,9 @@ def _build_url(config: dict, path: str, *, use_data_services: bool) -> str:
     origin = f"{parsed.scheme}://{parsed.netloc}"
     base_path = parsed.path.rstrip("/")
 
-    # If the path already includes the API root prefix (e.g. _links.next.href
-    # returns "/api/data-engine/..." when base_url is "https://host/api"),
-    # join with the origin only to avoid double-pathing.
+    # _links.next.href returns paths relative to the API root
+    # (e.g. "/api/data-engine/...") — join with the origin only to avoid
+    # duplicating the base path component.
     if base_path and (path.startswith(base_path + "/") or path == base_path):
         return f"{origin}{path}"
 
@@ -108,19 +99,13 @@ def _build_url(config: dict, path: str, *, use_data_services: bool) -> str:
 
 
 def _parse_error(response_json: dict) -> AideApiError | None:
-    """Return an :class:`AideApiError` if *response_json* contains an error key.
+    """Return an :class:`AideApiError` if *response_json* contains an error.
 
-    AIDE / ONTAP REST APIs embed errors in one of two shapes:
-
-    .. code-block:: json
+    ONTAP REST APIs embed errors as::
 
         {"error": {"code": "4", "message": "...", "target": "..."}}
 
-    or the top-level dict itself is the error object:
-
-    .. code-block:: json
-
-        {"code": "4", "message": "..."}
+    Some older endpoints use a plain string value for ``"error"``.
     """
     err = response_json.get("error")
     if err is None:
@@ -131,7 +116,6 @@ def _parse_error(response_json: dict) -> AideApiError | None:
         message = err.get("message", "Unknown API error")
         target = err.get("target")
     else:
-        # The "error" value is a plain string (some older endpoints).
         code = "unknown"
         message = str(err)
         target = None
@@ -140,19 +124,9 @@ def _parse_error(response_json: dict) -> AideApiError | None:
 
 
 def _extract_async_job(response_json: dict) -> dict | None:
-    """Return a normalised job dict if *response_json* represents an async job.
+    """Return a normalised job dict if the response represents an async job.
 
-    The API signals an in-progress job via a ``job`` key:
-
-    .. code-block:: json
-
-        {
-          "job": {
-            "uuid": "abc-123",
-            "state": "queued",
-            "_links": {"self": {"href": "/api/cluster/jobs/abc-123"}}
-          }
-        }
+    Returns ``None`` when no ``"job"`` key is present.
     """
     job = response_json.get("job")
     if not job:
@@ -189,47 +163,57 @@ async def aide_request(
     path:
         Relative API path, e.g. ``"/data-engine/workspaces"``.
     params:
-        Optional query-string parameters (``dict``).
+        Optional query-string parameters.
     body:
-        Optional JSON request body (``dict``).
+        Optional JSON request body.
     timeout:
         Request timeout in seconds (default ``30``).
     use_data_services:
-        When ``True``, the request is sent to ``config["data_services_base_url"]``
-        instead of ``config["base_url"]``.  Ignored when *full_url* is set.
+        When ``True``, the request targets ``config["data_services_base_url"]``
+        (data-services LIF) instead of ``config["base_url"]``
+        (cluster-management LIF).  Ignored when *full_url* is set.
     full_url:
-        When set, this URL is used verbatim — ``_build_url`` is bypassed
-        entirely.  Used by the search tool to pass
+        When set, this URL is used verbatim — ``_build_url`` is bypassed.
+        Used by the search tool to pass
         ``config["rag_search_api_endpoint_url"]`` directly.
 
     Returns
     -------
     dict
-        Parsed JSON response body.  If the server returned HTTP 202 the
-        return value is a normalised job dict
-        ``{"job": {"uuid": ..., "state": ..., "_links": {...}}}``.
-        DELETE with an empty body returns ``{"status": "deleted"}``.
-        PATCH with an empty body returns ``{"status": "updated"}``.
+        Parsed JSON response.  Status-code-specific shapes:
+
+        * **200** — parsed JSON body.
+        * **201** — parsed JSON body (created resource).
+        * **202** — ``{"job": {"uuid": …, "state": …, "_links": {…}}}``.
+        * **DELETE with empty body** — ``{"status": "deleted"}``.
+        * **PATCH  with empty body** — ``{"status": "updated"}``.
 
     Raises
     ------
     AideConfigError
         If the required base URL is absent from the configuration.
     AideApiError
-        If the API response contains an ``"error"`` key.
-    httpx.HTTPStatusError
-        For non-2xx responses whose body is not a JSON error object.
+        If the API returns an error envelope, the request times out,
+        the connection fails, or authentication fails.
     """
     config = load_credentials()
 
+    # --- URL -----------------------------------------------------------------
     if full_url is not None:
         url = full_url
     else:
         url = _build_url(config, path, use_data_services=use_data_services)
 
-    token = await get_access_token(config)
+    # --- OAuth2 token --------------------------------------------------------
+    try:
+        token = await get_access_token(config)
+    except Exception as exc:
+        raise AideApiError(
+            code="auth_failure",
+            message=f"OAuth2 authentication failed: {exc}",
+        ) from exc
 
-    headers = {
+    headers: dict[str, str] = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/json",
     }
@@ -240,49 +224,72 @@ async def aide_request(
 
     logger.debug("%s %s  params=%s", method.upper(), url, params)
 
-    async with httpx.AsyncClient(verify=verify_ssl, timeout=timeout) as client:
-        response = await client.request(
-            method=method.upper(),
-            url=url,
-            params=params,
-            json=body,
-            headers=headers,
+    # --- HTTP round-trip -----------------------------------------------------
+    try:
+        async with httpx.AsyncClient(verify=verify_ssl, timeout=timeout) as client:
+            response = await client.request(
+                method=method.upper(),
+                url=url,
+                params=params,
+                json=body,
+                headers=headers,
+            )
+    except httpx.TimeoutException:
+        raise AideApiError(
+            code="timeout",
+            message=f"Request timed out after {timeout}s connecting to {url}",
         )
+    except httpx.ConnectError as exc:
+        raise AideApiError(
+            code="connection_error",
+            message=f"Failed to connect to {url}: {exc}",
+        ) from exc
 
     logger.debug("Response: HTTP %s", response.status_code)
 
-    # --- 401: clear cached token so the next call can retry -----------------
+    # --- 401: invalidate token cache so the next call can re-authenticate ----
     if response.status_code == 401:
         clear_token_cache()
         logger.warning("Received HTTP 401 — OAuth2 token cache cleared.")
 
-    # --- parse body ---------------------------------------------------------
+    # --- Parse response body -------------------------------------------------
     try:
         response_json: dict = response.json()
-    except Exception:
-        response.raise_for_status()
+    except Exception as exc:
+        if response.status_code >= 400:
+            raise AideApiError(
+                code=str(response.status_code),
+                message=(
+                    f"HTTP {response.status_code} with non-JSON body "
+                    f"from {url}"
+                ),
+            )
+        # 2xx with no parseable body — return a sensible default.
         if method.upper() == "DELETE":
             return {"status": "deleted"}
         if method.upper() == "PATCH":
             return {"status": "updated"}
+        logger.debug("Non-JSON 2xx response: %s", exc)
         return {}
 
-    # --- API-level error ----------------------------------------------------
+    # --- API-level error envelope --------------------------------------------
     api_error = _parse_error(response_json)
     if api_error:
         raise api_error
 
-    # --- Async job (HTTP 202) -----------------------------------------------
+    # --- HTTP 202: async job -------------------------------------------------
     if response.status_code == 202:
         job = _extract_async_job(response_json)
         if job:
             return job
-        # 202 without a job body — return the raw dict as-is.
         return response_json
 
-    # --- Generic HTTP errors (non-2xx, non-202) not caught above ------------
+    # --- Non-2xx without an error envelope -----------------------------------
     if response.status_code >= 400:
-        response.raise_for_status()
+        raise AideApiError(
+            code=str(response.status_code),
+            message=f"HTTP {response.status_code} from {url}",
+        )
 
     return response_json
 
@@ -300,13 +307,12 @@ async def aide_request_all_pages(
     """Fetch every page of a paginated AIDE REST collection.
 
     Follows ``_links.next.href`` until no further pages are returned, then
-    returns a flat list of all ``records`` entries across all pages.
+    returns a flat list of all record entries across all pages.
 
     Parameters
     ----------
     method, path, params, body, timeout, use_data_services:
-        Forwarded to :func:`aide_request` for the first (and each subsequent)
-        request.
+        Forwarded to :func:`aide_request` for each page request.
     records_key:
         The key inside each page response that holds the list of items
         (default ``"records"``).
@@ -318,7 +324,7 @@ async def aide_request_all_pages(
 
     Raises
     ------
-    AideConfigError, AideApiError, httpx.HTTPStatusError:
+    AideConfigError, AideApiError:
         Propagated from :func:`aide_request`.
     """
     all_records: list[dict] = []
@@ -339,14 +345,12 @@ async def aide_request_all_pages(
         if isinstance(records, list):
             all_records.extend(records)
 
-        # Cursor / next-page link
         links = page.get("_links", {})
         next_link = links.get("next", {})
         next_href = next_link.get("href") if isinstance(next_link, dict) else None
 
-        # On subsequent pages the path comes from _links.next.href which is
-        # already fully qualified relative to the API root, so clear params
-        # to avoid duplicating cursor tokens.
+        # Subsequent pages use the fully-qualified href from _links.next,
+        # so clear params to avoid duplicating cursor tokens.
         current_params = {}
 
     return all_records

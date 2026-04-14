@@ -174,6 +174,12 @@ def _start_local_callback_server(redirect_uri: str):
     return event, result, server
 
 
+def clear_token_cache() -> None:
+    """Remove all cached tokens so the next ``get_access_token()`` call
+    triggers a refresh or interactive re-authentication."""
+    _token_cache.clear()
+
+
 async def authenticate_eagerly(config: dict) -> None:
     """Runs interactive OAuth2 once so the token cache is populated before MCP serves requests."""
     await get_access_token(config)
