@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: server
-        image: ghcr.io/netapp/aide-mcp-server:0.2.0
+        image: ghcr.io/netapp/aide-mcp-server:v2.0.0
 
         # Override the container default to idle securely.
         # The true MCP server processes are spawned dynamically via kubectl exec.

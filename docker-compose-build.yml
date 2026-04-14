@@ -7,7 +7,7 @@ services:
       - netapp_config:/config
       - ./.netapp:/tmp/.netapp:ro
     command: >
-      sh -c "cp /tmp/.netapp /config/.netapp && chown 1000:1000 /config/.netapp && chmod 600 /config/.netapp"
+      sh -c "cp /tmp/.netapp /config/.netapp && chown 10000:10000 /config/.netapp && chmod 600 /config/.netapp"
 
   aide-mcp-server:
     build: .

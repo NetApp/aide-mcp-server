@@ -11,7 +11,12 @@ ENV HOME=/config \
     PATH="/usr/local/bin:$PATH" 
 
 # Create a non-root user to run the application
-RUN useradd --create-home --home-dir /app appuser
+# Pick a deterministic, safe UID/GID like 10000
+ARG APP_UID=10000
+ARG APP_GID=10000
+
+RUN groupadd --gid ${APP_GID} appgroup && \
+    useradd --uid ${APP_UID} --gid ${APP_GID} --create-home --home-dir /app appuser
 
 # Copy the application source code into the container and install dependencies
 COPY pyproject.toml .

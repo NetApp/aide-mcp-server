@@ -2,15 +2,15 @@
 
 services:
   aide-setup:
-    image: alpine:3.20
+    image: alpine:3.23
     volumes:
       - netapp_config:/config
       - ./.netapp:/tmp/.netapp:ro
     command: >
-      sh -c "cp /tmp/.netapp /config/.netapp && chown 1000:1000 /config/.netapp && chmod 600 /config/.netapp"
+      sh -c "cp /tmp/.netapp /config/.netapp && chown 10000:10000 /config/.netapp && chmod 600 /config/.netapp"
 
   aide-mcp-server:
-    image: ghcr.io/netapp/aide-mcp-server:0.2.0
+    image: ghcr.io/netapp/aide-mcp-server:v2.0.0
     # Required to keep STDIN open for the MCP stdio transport
     stdin_open: true 
     depends_on:
