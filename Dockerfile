@@ -29,7 +29,7 @@ RUN pip install --no-cache-dir uv && \
 RUN mkdir -p /config
 
 # Change ownership of the app directory to the non-root user
-RUN chown -R appuser:appuser /app /usr/local/lib/python*/site-packages/ /config
+RUN chown -R appuser:appgroup /app /usr/local/lib/python*/site-packages/ /config
 
 # Switch to the non-root user
 USER appuser
