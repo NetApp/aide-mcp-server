@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import logging
 import urllib.parse
-from typing import AsyncIterator
+from typing import AsyncGenerator
 
 import httpx
 
@@ -25,6 +25,16 @@ from .config import load_credentials
 from .oauth2 import clear_token_cache, get_access_token
 
 logger = logging.getLogger(__name__)
+
+_cached_config: dict | None = None
+
+
+def _get_config() -> dict:
+    """Return the validated config, caching the result after the first load."""
+    global _cached_config
+    if _cached_config is None:
+        _cached_config = load_credentials()
+    return _cached_config
 
 
 # ---------------------------------------------------------------------------
@@ -196,7 +206,7 @@ async def aide_request(
         If the API returns an error envelope, the request times out,
         the connection fails, or authentication fails.
     """
-    config = load_credentials()
+    config = _get_config()
 
     # --- URL -----------------------------------------------------------------
     if full_url is not None:
@@ -204,53 +214,58 @@ async def aide_request(
     else:
         url = _build_url(config, path, use_data_services=use_data_services)
 
-    # --- OAuth2 token --------------------------------------------------------
-    try:
-        token = await get_access_token(config)
-    except Exception as exc:
-        raise AideApiError(
-            code="auth_failure",
-            message=f"OAuth2 authentication failed: {exc}",
-        ) from exc
-
-    headers: dict[str, str] = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/json",
-    }
-    if body is not None:
-        headers["Content-Type"] = "application/json"
-
     verify_ssl: bool | str = config.get("verify_ssl", True)
 
-    logger.debug("%s %s  params=%s", method.upper(), url, params)
+    # Allow a single retry when a 401 indicates the cached token has expired.
+    for attempt in range(2):
+        # --- OAuth2 token ----------------------------------------------------
+        try:
+            token = await get_access_token(config)
+        except Exception as exc:
+            raise AideApiError(
+                code="auth_failure",
+                message=f"OAuth2 authentication failed: {exc}",
+            ) from exc
 
-    # --- HTTP round-trip -----------------------------------------------------
-    try:
-        async with httpx.AsyncClient(verify=verify_ssl, timeout=timeout) as client:
-            response = await client.request(
-                method=method.upper(),
-                url=url,
-                params=params,
-                json=body,
-                headers=headers,
-            )
-    except httpx.TimeoutException:
-        raise AideApiError(
-            code="timeout",
-            message=f"Request timed out after {timeout}s connecting to {url}",
-        )
-    except httpx.ConnectError as exc:
-        raise AideApiError(
-            code="connection_error",
-            message=f"Failed to connect to {url}: {exc}",
-        ) from exc
+        headers: dict[str, str] = {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+        }
+        if body is not None:
+            headers["Content-Type"] = "application/json"
 
-    logger.debug("Response: HTTP %s", response.status_code)
+        logger.debug("%s %s  params=%s", method.upper(), url, params)
 
-    # --- 401: invalidate token cache so the next call can re-authenticate ----
-    if response.status_code == 401:
-        clear_token_cache()
-        logger.warning("Received HTTP 401 — OAuth2 token cache cleared.")
+        # --- HTTP round-trip -------------------------------------------------
+        try:
+            async with httpx.AsyncClient(verify=verify_ssl, timeout=timeout) as client:
+                response = await client.request(
+                    method=method.upper(),
+                    url=url,
+                    params=params,
+                    json=body,
+                    headers=headers,
+                )
+        except httpx.TimeoutException as exc:
+            raise AideApiError(
+                code="timeout",
+                message=f"Request timed out after {timeout}s connecting to {url}",
+            ) from exc
+        except httpx.ConnectError as exc:
+            raise AideApiError(
+                code="connection_error",
+                message=f"Failed to connect to {url}: {exc}",
+            ) from exc
+
+        logger.debug("Response: HTTP %s", response.status_code)
+
+        # --- 401: clear cache and retry once with a fresh token --------------
+        if response.status_code == 401 and attempt == 0:
+            clear_token_cache()
+            logger.warning("Received HTTP 401 — retrying with a fresh token.")
+            continue
+
+        break
 
     # --- Parse response body -------------------------------------------------
     try:
@@ -264,7 +279,6 @@ async def aide_request(
                     f"from {url}"
                 ),
             )
-        # 2xx with no parseable body — return a sensible default.
         if method.upper() == "DELETE":
             return {"status": "deleted"}
         if method.upper() == "PATCH":
@@ -303,6 +317,7 @@ async def aide_request_all_pages(
     timeout: int = 30,
     use_data_services: bool = False,
     records_key: str = "records",
+    max_pages: int = 1000,
 ) -> list[dict]:
     """Fetch every page of a paginated AIDE REST collection.
 
@@ -316,6 +331,9 @@ async def aide_request_all_pages(
     records_key:
         The key inside each page response that holds the list of items
         (default ``"records"``).
+    max_pages:
+        Safety limit on the number of pages to fetch (default ``1000``).
+        Prevents runaway loops if the API returns circular next links.
 
     Returns
     -------
@@ -330,8 +348,17 @@ async def aide_request_all_pages(
     all_records: list[dict] = []
     next_href: str | None = path
     current_params = dict(params) if params else {}
+    pages_fetched = 0
 
     while next_href is not None:
+        if pages_fetched >= max_pages:
+            logger.warning(
+                "Pagination stopped after %d pages (max_pages=%d).",
+                pages_fetched,
+                max_pages,
+            )
+            break
+
         page = await aide_request(
             method,
             next_href,
@@ -340,6 +367,7 @@ async def aide_request_all_pages(
             timeout=timeout,
             use_data_services=use_data_services,
         )
+        pages_fetched += 1
 
         records = page.get(records_key)
         if isinstance(records, list):
@@ -365,11 +393,17 @@ async def aide_paginated_stream(
     timeout: int = 30,
     use_data_services: bool = False,
     records_key: str = "records",
-) -> AsyncIterator[dict]:
+    max_pages: int = 1000,
+) -> AsyncGenerator[dict, None]:
     """Async generator that yields individual records page-by-page.
 
     Unlike :func:`aide_request_all_pages` this does not accumulate all pages
     in memory — useful when iterating over very large collections.
+
+    Parameters
+    ----------
+    max_pages:
+        Safety limit on the number of pages to fetch (default ``1000``).
 
     Yields
     ------
@@ -378,8 +412,17 @@ async def aide_paginated_stream(
     """
     next_href: str | None = path
     current_params = dict(params) if params else {}
+    pages_fetched = 0
 
     while next_href is not None:
+        if pages_fetched >= max_pages:
+            logger.warning(
+                "Pagination stopped after %d pages (max_pages=%d).",
+                pages_fetched,
+                max_pages,
+            )
+            break
+
         page = await aide_request(
             method,
             next_href,
@@ -388,6 +431,7 @@ async def aide_paginated_stream(
             timeout=timeout,
             use_data_services=use_data_services,
         )
+        pages_fetched += 1
 
         records = page.get(records_key)
         if isinstance(records, list):
