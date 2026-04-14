@@ -1,28 +1,186 @@
-PKCE_AUTH_FLOW (.netapp)
+################################################################################
+#                           PKCE AUTH FLOW                                     #
+#  Recommended if you have a browser available on your machine.                #
+################################################################################
+
+
+================================================================================
+PKCE — Search-only profile
+================================================================================
+
+Use this when you only have access to the data services interface (search
+endpoint). Your admin provides the full rag_search_api_endpoint_url.
+Only the search tool will be available.
+
 {
     "auth_flow": "pkce",
-    "rag_search_api_endpoint_url": "https://netapp-data-engine-api.mycompany.net/data-engine/workspaces/00001111-aaaa-2222-bbbb-3333cccc4444/data-collections/00001111-aaaa-2222-bbbb-3333cccc4444/search",
+    "rag_search_api_endpoint_url": "https://10.0.0.2/api/data-engine/workspaces/00001111-aaaa-2222-bbbb-3333cccc4444/data-collections/55556666-dddd-7777-eeee-8888ffff9999/search",
     "verify_ssl": false,
-    "token_request_endpoint_url": "https://login.microsoftonline.com/mycompany/oauth2/v2.0/authorize",
-    "token_exchange_endpoint_url": "https://login.microsoftonline.com/mycompany/oauth2/v2.0/token",
+    "token_request_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/authorize",
+    "token_exchange_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token",
     "token_request_params": {
         "client_id": "00001111-aaaa-2222-bbbb-3333cccc4444",
         "redirect_uri": "http://localhost:8888",
-        "scope": "00001111-aaaa-2222-bbbb-3333cccc4444/.default",
+        "scope": "api://your-app/.default",
         "use_pkce": true,
         "auth_timeout_seconds": 300
     }
 }
 
-DEVICE_CODE_FLOW (.netapp)
+
+================================================================================
+PKCE — Full access (explicit) profile
+================================================================================
+
+Use this when you have access to both the cluster management interface and the
+data services interface, and want to specify each base URL explicitly. All tools
+for your persona will be available. The search tool requires you to pass
+workspace_uuid and datacollection_uuid explicitly.
+
 {
-    "auth_flow": "device_code",
-    "rag_search_api_endpoint_url": "https://netapp-data-engine-api.mycompany.net/data-engine/workspaces/00001111-aaaa-2222-bbbb-3333cccc4444/data-collections/00001111-aaaa-2222-bbbb-3333cccc4444/search",
+    "auth_flow": "pkce",
+    "base_url": "https://10.0.0.1/api",
+    "data_services_base_url": "https://10.0.0.2/api",
     "verify_ssl": false,
-    "device_code_endpoint_url": "https://login.microsoftonline.com/mycompany/oauth2/v2.0/devicecode",
-    "token_request_endpoint_url": "https://login.microsoftonline.com/mycompany/oauth2/v2.0/token",
+    "token_request_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/authorize",
+    "token_exchange_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token",
     "token_request_params": {
         "client_id": "00001111-aaaa-2222-bbbb-3333cccc4444",
-        "scope": "00001111-aaaa-2222-bbbb-3333cccc4444/.default"
+        "redirect_uri": "http://localhost:8888",
+        "scope": "api://your-app/.default",
+        "use_pkce": true,
+        "auth_timeout_seconds": 300
     }
 }
+
+
+================================================================================
+PKCE — Full access (mixed) profile
+================================================================================
+
+Use this when you have access to both interfaces but want the search tool to
+default to a pre-configured workspace and data collection (parsed from the
+rag_search_api_endpoint_url). The data_services_base_url is derived
+automatically from the search URL.
+
+{
+    "auth_flow": "pkce",
+    "base_url": "https://10.0.0.1/api",
+    "rag_search_api_endpoint_url": "https://10.0.0.2/api/data-engine/workspaces/00001111-aaaa-2222-bbbb-3333cccc4444/data-collections/55556666-dddd-7777-eeee-8888ffff9999/search",
+    "verify_ssl": false,
+    "token_request_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/authorize",
+    "token_exchange_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token",
+    "token_request_params": {
+        "client_id": "00001111-aaaa-2222-bbbb-3333cccc4444",
+        "redirect_uri": "http://localhost:8888",
+        "scope": "api://your-app/.default",
+        "use_pkce": true,
+        "auth_timeout_seconds": 300
+    }
+}
+
+
+################################################################################
+#                        DEVICE CODE AUTH FLOW                                 #
+#  Use this if you do not have a browser on your machine. A short code will    #
+#  be printed in the logs — copy it, open the provided verification URL on     #
+#  any device, and enter the code to complete authentication.                  #
+################################################################################
+
+
+================================================================================
+Device Code — Search-only profile
+================================================================================
+
+Use this when you only have access to the data services interface (search
+endpoint). Your admin provides the full rag_search_api_endpoint_url.
+Only the search tool will be available.
+
+{
+    "auth_flow": "device_code",
+    "rag_search_api_endpoint_url": "https://10.0.0.2/api/data-engine/workspaces/00001111-aaaa-2222-bbbb-3333cccc4444/data-collections/55556666-dddd-7777-eeee-8888ffff9999/search",
+    "verify_ssl": false,
+    "device_code_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/devicecode",
+    "token_request_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token",
+    "token_request_params": {
+        "client_id": "00001111-aaaa-2222-bbbb-3333cccc4444",
+        "scope": "api://your-app/.default"
+    }
+}
+
+
+================================================================================
+Device Code — Full access (explicit) profile
+================================================================================
+
+Use this when you have access to both the cluster management interface and the
+data services interface, and want to specify each base URL explicitly. All tools
+for your persona will be available. The search tool requires you to pass
+workspace_uuid and datacollection_uuid explicitly.
+
+{
+    "auth_flow": "device_code",
+    "base_url": "https://10.0.0.1/api",
+    "data_services_base_url": "https://10.0.0.2/api",
+    "verify_ssl": false,
+    "device_code_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/devicecode",
+    "token_request_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token",
+    "token_request_params": {
+        "client_id": "00001111-aaaa-2222-bbbb-3333cccc4444",
+        "scope": "api://your-app/.default"
+    }
+}
+
+
+================================================================================
+Device Code — Full access (mixed) profile
+================================================================================
+
+Use this when you have access to both interfaces but want the search tool to
+default to a pre-configured workspace and data collection (parsed from the
+rag_search_api_endpoint_url). The data_services_base_url is derived
+automatically from the search URL.
+
+{
+    "auth_flow": "device_code",
+    "base_url": "https://10.0.0.1/api",
+    "rag_search_api_endpoint_url": "https://10.0.0.2/api/data-engine/workspaces/00001111-aaaa-2222-bbbb-3333cccc4444/data-collections/55556666-dddd-7777-eeee-8888ffff9999/search",
+    "verify_ssl": false,
+    "device_code_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/devicecode",
+    "token_request_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token",
+    "token_request_params": {
+        "client_id": "00001111-aaaa-2222-bbbb-3333cccc4444",
+        "scope": "api://your-app/.default"
+    }
+}
+
+
+################################################################################
+#                          KEY REFERENCE                                       #
+################################################################################
+
+Endpoint keys (at least one required):
+  base_url                     Cluster management interface, e.g. https://10.0.0.1/api
+                               Required for all tools except search.
+  data_services_base_url       Data services interface, e.g. https://10.0.0.2/api
+                               Required for search. Auto-derived from
+                               rag_search_api_endpoint_url if omitted.
+  rag_search_api_endpoint_url  Full pre-built search URL including workspace and
+                               data-collection UUIDs. When present,
+                               default_workspace_uuid and default_datacollection_uuid
+                               are parsed from the URL automatically.
+
+Auth keys (always required):
+  auth_flow                    "pkce" or "device_code"
+  token_request_endpoint_url   OAuth2 authorization endpoint (PKCE) or token
+                               endpoint (device code)
+  token_request_params         Object with client_id and auth-flow-specific params
+
+Auth keys (conditional):
+  token_exchange_endpoint_url  Token endpoint for PKCE (required if different
+                               from token_request_endpoint_url)
+  device_code_endpoint_url     Device code endpoint (required when auth_flow
+                               is "device_code")
+
+Other:
+  verify_ssl                   true or false — whether to verify TLS certificates
