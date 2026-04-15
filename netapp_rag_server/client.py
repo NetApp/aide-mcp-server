@@ -85,9 +85,8 @@ def set_config(config: dict) -> None:
         _http_client = None
         if old is not None and not old.is_closed:
             try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    loop.create_task(old.aclose())
+                loop = asyncio.get_running_loop()
+                loop.create_task(old.aclose())
             except RuntimeError:
                 pass  # No running loop — connections will be GC'd.
     _config = config
@@ -279,7 +278,7 @@ async def aide_request(
                 method=method.upper(),
                 url=url,
                 params=params,
-                json=body if body is not None else None,
+                json=body,
                 headers=headers,
                 timeout=timeout,
             )
@@ -431,9 +430,9 @@ async def aide_request_all_pages(
     current_params: dict | None = dict(params) if params else None
     current_method = method
     pages_fetched = 0
-    # The API reports the total record count on the first page response
-    # (num_records field).  Capture it so it can be included in the final
-    # return value; falls back to len(all_records) if not present.
+    # The API reports the full unpaginated count in ``total_records`` on the
+    # first page response.  Capture it so it can be included in the final
+    # return value; falls back to ``num_records`` then len(all_records).
     api_total_records: int | None = None
 
     config = _get_config()
