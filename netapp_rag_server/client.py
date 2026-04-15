@@ -29,7 +29,12 @@ _client_lock: asyncio.Lock | None = None
 
 
 def _get_client_lock() -> asyncio.Lock:
-    """Lazily create the module-level client creation lock inside a running loop."""
+    """Lazily create the module-level client creation lock inside a running loop.
+
+    Safe without its own lock: asyncio coroutines run on a single thread, so
+    two coroutines cannot race on the ``if _client_lock is None`` check without
+    an intervening ``await`` — and there is none here.
+    """
     global _client_lock
     if _client_lock is None:
         _client_lock = asyncio.Lock()
@@ -65,10 +70,26 @@ def set_config(config: dict) -> None:
     If called again with a different config object (e.g. in tests or after
     reconfiguration), the shared HTTP client is invalidated so that the next
     ``_get_client()`` call recreates it with the updated ``verify_ssl`` setting.
+
+    .. note::
+        In production this is called exactly once at startup, so the old-client
+        teardown path is primarily relevant to tests.  The old client's
+        connections are scheduled for closure on the running event loop when one
+        is available; if no loop is running (e.g. during import-time setup) the
+        connections are abandoned — acceptable because the process is still
+        initialising and no requests have been made yet.
     """
     global _config, _http_client
     if _config is not config:
+        old = _http_client
         _http_client = None
+        if old is not None and not old.is_closed:
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    loop.create_task(old.aclose())
+            except RuntimeError:
+                pass  # No running loop — connections will be GC'd.
     _config = config
 
 
@@ -248,8 +269,8 @@ async def aide_request(
             "Authorization": f"Bearer {access_token}",
             "Accept": "application/json",
         }
-        if body is not None:
-            headers["Content-Type"] = "application/json"
+        # Note: httpx sets Content-Type: application/json automatically when
+        # json= is used, so no manual header is needed here.
 
         logger.debug("%s %s  params=%s", method.upper(), url, params)
 
@@ -258,20 +279,20 @@ async def aide_request(
                 method=method.upper(),
                 url=url,
                 params=params,
-                json=body,
+                json=body if body is not None else None,
                 headers=headers,
                 timeout=timeout,
             )
-        except httpx.TimeoutException:
+        except httpx.TimeoutException as exc:
             raise AideApiError(
                 code="timeout",
                 message=f"Request timed out after {timeout}s connecting to {url}",
-            )
+            ) from exc
         except httpx.ConnectError as exc:
             raise AideApiError(
                 code="connection_error",
                 message=f"Failed to connect to {url}: {exc}",
-            )
+            ) from exc
 
         logger.debug("Response: HTTP %s", response.status_code)
 
@@ -443,8 +464,13 @@ async def aide_request_all_pages(
         all_records.extend(page.get("records", []))
 
         # Capture the API-reported total from the first page only.
+        # Prefer ``total_records`` (the full unpaginated count) over
+        # ``num_records`` (the per-page count).  Use an explicit ``None``
+        # check so that a legitimate zero-record collection is not treated
+        # as falsy and incorrectly overridden.
         if api_total_records is None:
-            api_total_records = page.get("num_records") or page.get("total_records")
+            tr = page.get("total_records")
+            api_total_records = tr if tr is not None else page.get("num_records")
 
         next_href = page.get("_links", {}).get("next", {}).get("href")
         if not next_href:
