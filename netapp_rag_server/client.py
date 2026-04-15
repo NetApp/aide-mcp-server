@@ -73,11 +73,12 @@ def set_config(config: dict) -> None:
 
     .. note::
         In production this is called exactly once at startup, so the old-client
-        teardown path is primarily relevant to tests.  The old client's
-        connections are scheduled for closure on the running event loop when one
-        is available; if no loop is running (e.g. during import-time setup) the
-        connections are abandoned — acceptable because the process is still
-        initialising and no requests have been made yet.
+        teardown path is primarily relevant to tests.  When called from within
+        a running coroutine the old client's connections are scheduled for
+        closure via ``loop.create_task``; outside a coroutine the
+        ``RuntimeError`` from ``get_running_loop()`` is caught and suppressed,
+        and the connections are abandoned — acceptable because the process is
+        still initialising and no requests have been made yet.
     """
     global _config, _http_client
     if _config is not config:
@@ -190,7 +191,11 @@ def _parse_error_body(data: dict) -> tuple[str, str, str | None]:
     """
     if "error" not in data:
         raise KeyError("'error' key not present in response body")
-    error = data["error"] if isinstance(data["error"], dict) else {}
+    if not isinstance(data["error"], dict):
+        # The "error" value is a plain string (e.g. "Unauthorized") — return
+        # it as the message directly rather than silently losing it via {}.
+        return "unknown", str(data["error"]), None
+    error = data["error"]
     code = str(error.get("code", "unknown"))
     message = error.get("message") or str(data.get("error", "Unknown error"))
     target = error.get("target")
@@ -262,6 +267,7 @@ async def aide_request(
     client = await _get_client()
 
     # Allow a single inline retry when a 401 indicates a stale cached token.
+    response: httpx.Response | None = None
     for attempt in range(2):
         access_token = await get_access_token(config)
         headers = {
@@ -303,6 +309,8 @@ async def aide_request(
             continue
 
         break
+
+    assert response is not None  # unreachable — exceptions propagate before this point
 
     # --- HTTP 401 after retry — raise clearly --------------------------------
     if response.status_code == 401:
