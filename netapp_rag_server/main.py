@@ -37,6 +37,7 @@ async def _async_main() -> None:
     try:
         await mcp.run_async(transport="stdio")
     finally:
+        # Stops the background refresh coroutine when stdio shuts down.
         refresh_task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await refresh_task
