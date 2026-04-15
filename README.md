@@ -1,16 +1,25 @@
-# netapp_mcp_server
+# NetApp MCP Server for AI Data Engine (AIDE)
 
 ## Description
+`netapp-data-engine-mcp` is an MCP server (Python package) to access the NetApp AI Data Engine (AIDE) capabilities via MCP tools, like:
+-  The `netapp_data_engine_search` tool for RAG (Retrieval-Augmented Generation) search functionality.
 
-`netapp-data-engine-mcp` is an MCP server (Python package) with custom AIDP RAG (Retrieval-Augmented Generation) search functionality. The server exposes a tool called `netapp_data_engine_search` for use in LLM workflows.
+Additional tools will be added in the future.
 
 >[!NOTE]
->This MCP server uses the stdio transport, as shown in the [MCP Server Quickstart](https://modelcontextprotocol.io/quickstart/server), making it a "local MCP server". 
+>This MCP server uses the stdio transport, as shown in the [MCP Server Quickstart](https://modelcontextprotocol.io/quickstart/server), making it a local-first MCP server for Agentic workflows with Claude Code, Copilot CLI, Gemini CLI, and others.
 
-## Quick Start
+## Deployments
+### Running from Sources
+See [UVX](DOCS/UVX.md) for deployment and usage instructions.   
 
-### Prerequisites
+### Docker/Podman
+See [DOCKER](DOCS/docker/DOCKER.md) for deployment and usage instructions.   
 
+<<<<<<< IMP-Maintainability
+### Kubernetes
+See [KUBERNETES](KUBERNETES.md) for deployment and usage instructions.   
+=======
 - Python >= 3.10
 - uvx (manages all installations automatically)
 
@@ -93,7 +102,7 @@ You can run the MCP server instantly, without installing anything globally:
 
 - Ensure your .netapp file is present and correctly formatted.
 - Check that Python 3.10+ is installed 
+>>>>>>> release-v2.0.0
 
 ### License
-
 Distributed under the terms of the BSD 3-Clause License (see the `LICENSE` file in the repository).

@@ -1,3 +1,4 @@
+# Copyright 2026 NetApp, Inc. All Rights Reserved.
 # Entry point to setup and run the MCP server
 
 import asyncio
@@ -12,7 +13,7 @@ from .oauth2 import authenticate_eagerly, start_token_refresh_loop
 from .tools import netapp_data_engine_search
 
 # Creates the FastMCP server instance
-mcp = FastMCP("NetApp RAG Search Server")
+mcp = FastMCP("NetApp MCP server for NetApp AI Data Engine")
 
 # Register the tool
 mcp.tool()(netapp_data_engine_search)

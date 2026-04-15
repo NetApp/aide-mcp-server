@@ -1,6 +1,9 @@
 # ignore virtual env
 .venv
 
+# ignore local config
+.netapp
+
 # ignore macOS specific file
 .DS_Store
 
