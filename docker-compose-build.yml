@@ -1,0 +1,24 @@
+# Copyright 2026 NetApp, Inc. All Rights Reserved.
+
+services:
+  aide-setup:
+    image: alpine:3.23
+    volumes:
+      - netapp_config:/config
+      - ./.netapp:/tmp/.netapp:ro
+    command: >
+      sh -c "cp /tmp/.netapp /config/.netapp && chown 10000:10000 /config/.netapp && chmod 600 /config/.netapp"
+
+  aide-mcp-server:
+    build: .
+    image: aide-mcp-server:local
+    # Required to keep STDIN open for the MCP stdio transport
+    stdin_open: true 
+    depends_on:
+      aide-setup:
+        condition: service_completed_successfully
+    volumes:
+      - netapp_config:/config
+
+volumes:
+  netapp_config:

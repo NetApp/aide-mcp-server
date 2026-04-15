@@ -1,0 +1,87 @@
+# NetApp MCP Server for NetApp AI Data Engine
+
+## Description
+`aide-mcp-server` is an MCP server (Python package) to access the NetApp AI Data Engine (AIDE) capabilities via MCP tools, like:
+-  The `netapp_data_engine_search` tool for RAG (Retrieval-Augmented Generation) search functionality.
+
+>[!NOTE]
+>This MCP server uses the stdio transport, as shown in the [MCP Server Quickstart](https://modelcontextprotocol.io/quickstart/server), making it a "local MCP server". 
+
+## Running from Sources
+
+### Prerequisites
+- Python >= 3.13
+- uvx (manages all installations automatically)
+
+### Configuration
+Before running the server, you need to create a `.netapp` file with the necessary configuration.
+When running locally via `uvx` directly, the file is expected in your home directory `~/.netapp`.  
+
+1. **Create the `.netapp` file**:
+   - Open a terminal or file explorer.
+   - Create a new file named `.netapp` (either in `~` if running via `uvx`, or in the project root if running via containers).
+
+2. **Add the JSON configuration**:
+   - Open the `.netapp` file in a text editor.
+   - Add the following JSON configuration, replacing the example values with your own:
+
+    For PKCE flow: *(Recommended if you have a browser available on your machine)*
+
+     ```json
+     {
+       "rag_search_api_endpoint_url": "https://example.com/api",
+       "verify_ssl": true,
+       "auth_flow": "pkce",
+       "token_request_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/authorize",
+       "token_exchange_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token",
+       "token_request_params": {
+         "client_id": "your_client_id",
+         "redirect_uri": "http://localhost:8888",
+         "scope": "api://your-app/.default",
+         "use_pkce": true,
+         "auth_timeout_seconds": 300
+       }
+     }
+     ```
+
+    For device code flow: *(Use this if you do not have a browser on your machine. A short code will be printed in the logs — copy it, open the provided verification URL on any device, and enter the code to complete authentication.)*
+
+     ```json
+     {
+       "rag_search_api_endpoint_url": "https://example.com/api",
+       "verify_ssl": true,
+       "auth_flow": "device_code",
+       "device_code_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/devicecode",
+       "token_request_endpoint_url": "https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token",
+       "token_request_params": {
+         "client_id": "your_client_id",
+         "scope": "api://your-app/.default"
+       }
+     }
+     ```
+
+  >Only PKCE (web-based) and Device Code flows are supported.
+
+3. **Set file permissions**:
+   - Ensure that the `.netapp` file is not readable by other users/groups for security reasons.
+   - On Unix-like systems, you can set the permissions using the following command:
+
+     ```sh
+     chmod 600 ~/.netapp
+     ```
+
+### Running with uvx
+You can run the MCP server from your local project directory without installing anything globally:
+
+    ```sh
+    uvx --from . server
+    ```
+
+This command finds the project in the current directory (`.`) and runs the `server` script.
+
+### Troubleshooting
+- Ensure your .netapp file is present and correctly formatted.
+- Check that Python 3.13+ is installed 
+
+### License
+Distributed under the terms of the BSD 3-Clause License (see the `LICENSE` file in the repository).
