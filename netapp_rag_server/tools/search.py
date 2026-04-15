@@ -48,14 +48,16 @@ async def netapp_data_engine_search(
                 "Authorization": f"Bearer {access_token}"
             }
 
-            timeout = return_timeout if return_timeout else 15
+            timeout = return_timeout if return_timeout is not None else 15
 
             response = await client.get(
                 config["rag_search_api_endpoint_url"],
                 params=api_params,
                 headers=headers,
-                **({"timeout": timeout} if timeout is not None else {})  # Sends timeout parameter if return_timeout available, else don't send anything
+                timeout=timeout,
             )
+
+            response.raise_for_status()
 
             # Try to parse JSON response
             try:
