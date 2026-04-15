@@ -27,6 +27,28 @@ from .oauth2 import clear_token_cache, get_access_token
 logger = logging.getLogger(__name__)
 
 _cached_config: dict | None = None
+_shared_client: httpx.AsyncClient | None = None
+
+
+def set_config(config: dict) -> None:
+    """Seed the module-level config cache.
+
+    Called once from ``main`` at startup so that every subsequent
+    ``_get_config()`` call reuses the same validated dict without
+    re-reading ``~/.netapp`` from disk.
+
+    If called again with a different config (e.g. in tests) the shared
+    ``httpx.AsyncClient`` is invalidated so that the next ``_get_client()``
+    call recreates it with the new ``verify_ssl`` setting.
+    """
+    global _cached_config, _shared_client
+    if _cached_config is not config:
+        # Discard the old client so _get_client() rebuilds it with the new
+        # verify_ssl value.  We do not await aclose() here because set_config
+        # is synchronous; the old client will be GC-collected after any
+        # in-flight requests complete.
+        _shared_client = None
+    _cached_config = config
 
 
 def _get_config() -> dict:
@@ -35,6 +57,28 @@ def _get_config() -> dict:
     if _cached_config is None:
         _cached_config = load_credentials()
     return _cached_config
+
+
+def _get_client() -> httpx.AsyncClient:
+    """Return the shared ``httpx.AsyncClient``, creating it on first use.
+
+    The client is configured with ``verify_ssl`` from the loaded config
+    and reuses TCP + TLS connections across requests.
+    """
+    global _shared_client
+    if _shared_client is None or _shared_client.is_closed:
+        config = _get_config()
+        verify_ssl: bool | str = config.get("verify_ssl", True)
+        _shared_client = httpx.AsyncClient(verify=verify_ssl)
+    return _shared_client
+
+
+async def close_client() -> None:
+    """Close the shared HTTP client.  Call once during server shutdown."""
+    global _shared_client
+    if _shared_client is not None and not _shared_client.is_closed:
+        await _shared_client.aclose()
+        _shared_client = None
 
 
 # ---------------------------------------------------------------------------
@@ -77,6 +121,10 @@ def _build_url(config: dict, path: str, *, use_data_services: bool) -> str:
     ``config["data_services_base_url"]`` (data-services LIF); otherwise from
     ``config["base_url"]`` (cluster-management LIF).
 
+    Absolute paths (starting with ``/``) — such as ``_links.next.href``
+    values — are resolved against the origin only, so the base path is
+    never duplicated.  Relative paths are appended to the full base URL.
+
     Raises :class:`AideConfigError` if the required key is missing.
     """
     if use_data_services:
@@ -97,13 +145,9 @@ def _build_url(config: dict, path: str, *, use_data_services: bool) -> str:
 
     parsed = urllib.parse.urlparse(base)
     origin = f"{parsed.scheme}://{parsed.netloc}"
-    base_path = parsed.path.rstrip("/")
 
-    # _links.next.href returns paths relative to the API root
-    # (e.g. "/api/data-engine/...") — join with the origin only to avoid
-    # duplicating the base path component.
-    if base_path and (path.startswith(base_path + "/") or path == base_path):
-        return f"{origin}{path}"
+    if path.startswith("/"):
+        return urllib.parse.urljoin(origin, path)
 
     return base.rstrip("/") + "/" + path.lstrip("/")
 
@@ -162,7 +206,6 @@ async def aide_request(
     body: dict | None = None,
     timeout: int = 30,
     use_data_services: bool = False,
-    full_url: str | None = None,
 ) -> dict:
     """Execute a single authenticated HTTP request against the AIDE REST API.
 
@@ -181,11 +224,7 @@ async def aide_request(
     use_data_services:
         When ``True``, the request targets ``config["data_services_base_url"]``
         (data-services LIF) instead of ``config["base_url"]``
-        (cluster-management LIF).  Ignored when *full_url* is set.
-    full_url:
-        When set, this URL is used verbatim — ``_build_url`` is bypassed.
-        Used by the search tool to pass
-        ``config["rag_search_api_endpoint_url"]`` directly.
+        (cluster-management LIF).
 
     Returns
     -------
@@ -207,14 +246,12 @@ async def aide_request(
         the connection fails, or authentication fails.
     """
     config = _get_config()
+    client = _get_client()
 
     # --- URL -----------------------------------------------------------------
-    if full_url is not None:
-        url = full_url
-    else:
-        url = _build_url(config, path, use_data_services=use_data_services)
+    url = _build_url(config, path, use_data_services=use_data_services)
 
-    verify_ssl: bool | str = config.get("verify_ssl", True)
+    response: httpx.Response | None = None
 
     # Allow a single retry when a 401 indicates the cached token has expired.
     for attempt in range(2):
@@ -238,14 +275,14 @@ async def aide_request(
 
         # --- HTTP round-trip -------------------------------------------------
         try:
-            async with httpx.AsyncClient(verify=verify_ssl, timeout=timeout) as client:
-                response = await client.request(
-                    method=method.upper(),
-                    url=url,
-                    params=params,
-                    json=body,
-                    headers=headers,
-                )
+            response = await client.request(
+                method=method.upper(),
+                url=url,
+                params=params,
+                json=body,
+                headers=headers,
+                timeout=timeout,
+            )
         except httpx.TimeoutException as exc:
             raise AideApiError(
                 code="timeout",
@@ -267,6 +304,10 @@ async def aide_request(
 
         break
 
+    # Both iteration paths either raise or assign `response`; this assertion
+    # guards against future refactors breaking that invariant.
+    assert response is not None, "response was never assigned — retry loop logic changed"
+
     # --- Parse response body -------------------------------------------------
     try:
         response_json: dict = response.json()
@@ -286,17 +327,17 @@ async def aide_request(
         logger.debug("Non-JSON 2xx response: %s", exc)
         return {}
 
-    # --- API-level error envelope --------------------------------------------
-    api_error = _parse_error(response_json)
-    if api_error:
-        raise api_error
-
-    # --- HTTP 202: async job -------------------------------------------------
+    # --- HTTP 202: async job (checked before error envelope) -----------------
     if response.status_code == 202:
         job = _extract_async_job(response_json)
         if job:
             return job
         return response_json
+
+    # --- API-level error envelope --------------------------------------------
+    api_error = _parse_error(response_json)
+    if api_error:
+        raise api_error
 
     # --- Non-2xx without an error envelope -----------------------------------
     if response.status_code >= 400:
@@ -348,6 +389,7 @@ async def aide_request_all_pages(
     all_records: list[dict] = []
     next_href: str | None = path
     current_params = dict(params) if params else {}
+    current_body: dict | None = body
     pages_fetched = 0
 
     while next_href is not None:
@@ -363,7 +405,7 @@ async def aide_request_all_pages(
             method,
             next_href,
             params=current_params,
-            body=body,
+            body=current_body,
             timeout=timeout,
             use_data_services=use_data_services,
         )
@@ -378,8 +420,10 @@ async def aide_request_all_pages(
         next_href = next_link.get("href") if isinstance(next_link, dict) else None
 
         # Subsequent pages use the fully-qualified href from _links.next,
-        # so clear params to avoid duplicating cursor tokens.
+        # so clear params and body to avoid duplicating cursor tokens or
+        # re-sending a POST body on cursor pages.
         current_params = {}
+        current_body = None
 
     return all_records
 
@@ -412,6 +456,7 @@ async def aide_paginated_stream(
     """
     next_href: str | None = path
     current_params = dict(params) if params else {}
+    current_body: dict | None = body
     pages_fetched = 0
 
     while next_href is not None:
@@ -427,7 +472,7 @@ async def aide_paginated_stream(
             method,
             next_href,
             params=current_params,
-            body=body,
+            body=current_body,
             timeout=timeout,
             use_data_services=use_data_services,
         )
@@ -442,3 +487,4 @@ async def aide_paginated_stream(
         next_link = links.get("next", {})
         next_href = next_link.get("href") if isinstance(next_link, dict) else None
         current_params = {}
+        current_body = None

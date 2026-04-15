@@ -7,6 +7,7 @@ import sys
 
 from fastmcp import FastMCP
 
+from .client import close_client, set_config
 from .config import load_credentials
 from .oauth2 import authenticate_eagerly, start_token_refresh_loop
 from .tools import netapp_data_engine_search
@@ -20,6 +21,7 @@ mcp.tool()(netapp_data_engine_search)
 
 async def _async_main() -> None:
     config = load_credentials()
+    set_config(config)
 
     # Completes interactive OAuth here so later tool calls reuse the same session.
     logging.info("Starting OAuth2 login (complete in the browser if prompted)...")
@@ -35,10 +37,10 @@ async def _async_main() -> None:
     try:
         await mcp.run_async(transport="stdio")
     finally:
-        # Stops the background refresh coroutine when stdio shuts down.
         refresh_task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await refresh_task
+        await close_client()
 
 
 def main() -> None:

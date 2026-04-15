@@ -9,6 +9,7 @@ authors = [
 ]
 dependencies = [
     "fastmcp>=3.2.0",
+    "httpx",
 ]
 license = { file="LICENSE" }
 

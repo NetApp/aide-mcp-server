@@ -234,8 +234,6 @@ async def _token_refresh_background(config: dict) -> None:
             if refresh_err is not None:
                 # Wait before the next background refresh attempt.
                 await asyncio.sleep(30)
-    except asyncio.CancelledError:
-        raise
 
 
 async def get_access_token(config: dict) -> str:
