@@ -1,16 +1,27 @@
 [project]
-name = "netapp-data-engine-mcp"
-version = "0.1.0"
-description = "MCP server with custom AIDP RAG search functionality"
+name = "netapp-aide-mcp"
+version = "1.0.0"
+description = "MCP server for NetApp AI Data Engine"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
-    { name = "Shreya Menneni", email = "Shreya.Menneni@netapp.com" }
+    { name = "Mike Oglesby", email = "Mike.Oglesby@netapp.com" },
+    { name = "Shreya Menneni", email = "Shreya.Menneni@netapp.com" },
+    { name = "Aarkin Karnik", email = "Aarkin.Karnik@netapp.com" }
+]
+maintainers = [
+  {name = "NetApp", email = "ng-ai-inquiry@netapp.com"}
 ]
 dependencies = [
     "fastmcp>=3.0.2",
 ]
 license = { file="LICENSE" }
+
+[project.urls]
+Documentation = "https://github.com/NetApp/aide-mcp-server"
+Repository = "https://github.com/NetApp/aide-mcp-server"
+Issues = "https://github.com/NetApp/aide-mcp-server/issues"
+Changelog = "https://github.com/NetApp/aide-mcp-server/releases"
 
 [build-system]
 requires = [
