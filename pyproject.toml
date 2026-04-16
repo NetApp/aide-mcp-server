@@ -1,6 +1,6 @@
 [project]
 name = "netapp-aide-mcp"
-version = "1.0.0b2"
+version = "1.0.0"
 description = "MCP server for NetApp AI Data Engine"
 readme = "README.md"
 requires-python = ">=3.10"
