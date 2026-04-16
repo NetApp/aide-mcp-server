@@ -1,3 +1,5 @@
+# Copyright 2026 NetApp, Inc. All Rights Reserved.
+
 from typing import Optional
 from .config import load_credentials
 from .oauth2 import get_access_token
