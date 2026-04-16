@@ -1,3 +1,5 @@
+# Copyright 2026 NetApp, Inc. All Rights Reserved.
+
 """MCP tools for semantic search over a data collection (RAG-style queries)."""
 
 from typing import Optional

@@ -1,14 +1,25 @@
+# Copyright 2026 NetApp, Inc. All Rights Reserved.
+
 [project]
 name = "netapp-data-engine-mcp"
-version = "0.1.0"
+version = "2.0.0"
 description = "MCP server with custom AIDP RAG search functionality"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.13"
 authors = [
-    { name = "Shreya Menneni", email = "Shreya.Menneni@netapp.com" }
+    { name = "Shreya Menneni", email = "Shreya.Menneni@netapp.com" },
+    { name = "Aarkin Karnik", email = "Aarkin.Karnik@netapp.com" },
+    { name = "Rom Adams", email = "Rom.Adams@netapp.com" }
 ]
 dependencies = [
     "fastmcp>=3.2.0",
+    "httpx>=0.28.1",
+    "authlib>=1.6.9",
+    "python-multipart>=0.0.22",
+    "starlette>=0.49.1",
+    "PyJWT>=2.12.0",
+    "Pygments>=2.20.0",
+    "cryptography>=46.0.6"
 ]
 license = { file="LICENSE" }
 

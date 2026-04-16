@@ -1,3 +1,4 @@
+# Copyright 2026 NetApp, Inc. All Rights Reserved.
 # Entry point to setup and run the MCP server
 
 import asyncio
@@ -7,12 +8,13 @@ import sys
 
 from fastmcp import FastMCP
 
+from .client import close_client, set_config
 from .config import load_credentials
 from .oauth2 import authenticate_eagerly, start_token_refresh_loop
 from .tools import netapp_data_engine_search
 
 # Creates the FastMCP server instance
-mcp = FastMCP("NetApp RAG Search Server")
+mcp = FastMCP("NetApp MCP server for NetApp AI Data Engine")
 
 # Register the tool
 mcp.tool()(netapp_data_engine_search)
@@ -20,6 +22,7 @@ mcp.tool()(netapp_data_engine_search)
 
 async def _async_main() -> None:
     config = load_credentials()
+    set_config(config)
 
     # Completes interactive OAuth here so later tool calls reuse the same session.
     logging.info("Starting OAuth2 login (complete in the browser if prompted)...")
@@ -39,6 +42,7 @@ async def _async_main() -> None:
         refresh_task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await refresh_task
+        await close_client()
 
 
 def main() -> None:
