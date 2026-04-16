@@ -8,7 +8,7 @@ async def netapp_data_engine_search(prompt: str, max_records: Optional[int] = No
 
     """
     
-    Searches for documents using a RAG API with OAuth2 authentication.
+    Searches for documents using NetApp AIDE's RAG API. This RAG API implements a vector-based semantic similarity search engine that retrieves relevant documents based on the provided query. The prompt arg represents the search query. Queries should be crafted based on vector search best practices to ensure optimal results. For example, using specific keywords, phrases, or context that align with the content of the documents being searched can help improve the relevance of the results. The max_records arg allows you to limit the number of search results returned by the API. If not provided, it will return all matching records. The return_timeout arg specifies how long to wait for a response from the API before timing out. If not provided, it defaults to 15 seconds.
 
     Args:
         prompt (str): The search query (required)

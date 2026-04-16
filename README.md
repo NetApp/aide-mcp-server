@@ -1,18 +1,18 @@
-# netapp_mcp_server
+# NetApp AI Data Engine (AIDE) MCP Server
 
 ## Description
 
-`netapp-data-engine-mcp` is an MCP server (Python package) with custom AIDP RAG (Retrieval-Augmented Generation) search functionality. The server exposes a tool called `netapp_data_engine_search` for use in LLM workflows.
+`netapp-aide-mcp` is an MCP server (Python package) that exposes the [NetApp AI Data Engine](https://docs.netapp.com/us-en/ai-data-engine/index.html)'s RAG (Retrieval-Augmented Generation) search functionality via MCP. The server exposes a tool named `netapp_data_engine_search`, which provides the ability to search for documents using AIDE's RAG API. This RAG API implements a vector-based semantic similarity search engine that retrieves relevant documents based on the provided query.
 
 >[!NOTE]
->This MCP server uses the stdio transport, as shown in the [MCP Server Quickstart](https://modelcontextprotocol.io/quickstart/server), making it a "local MCP server". 
+>This MCP server uses the stdio transport, making it a "local MCP server". 
 
-## Quick Start
+## Quick start
 
 ### Prerequisites
 
 - Python >= 3.10
-- uvx (manages all installations automatically)
+- [uv](https://docs.astral.sh/uv/) (manages all installations automatically)
 
 ### Configuration
 
@@ -62,7 +62,7 @@ Before running the server, you need to create a `.netapp` file in your home dire
      }
      ```
 
-  >Only PKCE (web-based) and Device Code flows are supported.
+    >Only PKCE (web-based) and Device Code flows are supported.
 
 3. **Set file permissions**:
    - Ensure that the `.netapp` file is not readable by other users/groups for security reasons.
@@ -79,18 +79,72 @@ Before running the server, you need to create a `.netapp` file in your home dire
 
 ### Running with uvx
 
-You can run the MCP server instantly, without installing anything globally:
+You can run the MCP server instantly, without installing anything globally.
 
-    ```sh
-    uvx --from netapp-data-engine-mcp server
-    ```
+>[!NOTE]
+>Authentication is initiated on the first tool call, not at server startup. When the first tool call is initiated: if you are using the PKCE flow, a browser window will open; if you are using the device code flow, the device code details will be printed to the MCP server's console logs. 
+
+#### Run pre-built package from PyPI
+
+```sh
+# Run the latest stable version
+uvx --from netapp-aide-mcp server
+
+# Run a specific version
+uvx --from netapp-aide-mcp==1.0.0 server
+```
 
 - `server` script launches the MCP server
+
+#### Build and run from source
+
+```sh
+# Clone the repo
+git clone https://github.com/NetApp/aide-mcp-server
+cd aide-mcp-server
+
+# Optional: check out a specific release
+# git checkout tags/release-v1.0.0
+
+# Retrieve the directory path for the cloned repo
+export AIDE_MCP_REPO_PATH=$(pwd)
+
+uvx --from $AIDE_MCP_REPO_PATH server
+```
+
+- `server` script launches the MCP server
+
+#### Example JSON config
+
+To use this MCP server with an MCP client, you need to configure the client to use this server. For many clients (such as [VS Code](https://code.visualstudio.com/docs/copilot/chat/mcp-servers), [Claude Desktop](https://modelcontextprotocol.io/quickstart/user), and [LMStudio](https://lmstudio.ai/docs/app/mcp)), this requires editing a config file in JSON format (often named mcp.json). Below is an example. Refer to the documentation for your MCP client for specific formatting details.
+
+>[!NOTE]
+>Most MCP clients will take care of starting the MCP server. You typically do not need to start the server yourself. As always, it's best to refer to the documentation for your MCP client for details on how it handles MCP servers.
+
+```json
+{
+	"servers": {
+		"netapp-aide-mcp": {
+			"type": "stdio",
+			"command": "uvx",
+			"args": [
+				"--from",
+				"netapp-aide-mcp",
+				"server"
+			]
+		}
+	}
+}
+```
+
 
 ### Troubleshooting
 
 - Ensure your .netapp file is present and correctly formatted.
-- Check that Python 3.10+ is installed 
+- Check that Python 3.10+ and uv are installed.
+- Ensure that your MCP client is compatible with the stdio transport; most desktop clients (e.g. VS Code, Claude Desktop, LMStudio) are, but some hosted clients are not.
+- If you are using the device code auth flow, check the MCP server console logs for the device code details. The device code details will be printed to the logs when the first tool call is initiated.
+- If your client is not invoking an MCP tool, try adding "Be sure to use NetApp AIDE" to your prompt.
 
 ### License
 
