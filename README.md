@@ -20,7 +20,7 @@ See [DOCKER](DOCS/docker/DOCKER.md) for deployment and usage instructions.
 ### Kubernetes
 See [KUBERNETES](DOCS/KUBERNETES.md) for deployment and usage instructions.   
 
-### MCP Registry metadata
+## MCP Registry metadata
 
 mcp-name: io.github.NetApp/aide-mcp-server
 
