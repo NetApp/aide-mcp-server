@@ -146,6 +146,10 @@ To use this MCP server with an MCP client, you need to configure the client to u
 - If you are using the device code auth flow, check the MCP server console logs for the device code details. The device code details will be printed to the logs when the first tool call is initiated.
 - If your client is not invoking an MCP tool, try adding "Be sure to use NetApp AIDE" to your prompt.
 
+### MCP Registry metadata
+
+mcp-name: io.github.NetApp/aide-mcp-server
+
 ### License
 
 Distributed under the terms of the BSD 3-Clause License (see the `LICENSE` file in the repository).
