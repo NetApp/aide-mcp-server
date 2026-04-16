@@ -18,3 +18,5 @@ __pycache__/
 build/
 
 .bdignore
+# dist files
+dist/

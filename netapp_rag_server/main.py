@@ -14,7 +14,7 @@ from .oauth2 import authenticate_eagerly, start_token_refresh_loop
 from .tools import netapp_data_engine_search
 
 # Creates the FastMCP server instance
-mcp = FastMCP("NetApp MCP server for NetApp AI Data Engine")
+mcp = FastMCP("NetApp AI Data Engine (AIDE) MCP Server")
 
 # Register the tool
 mcp.tool()(netapp_data_engine_search)
