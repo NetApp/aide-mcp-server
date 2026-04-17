@@ -2,10 +2,10 @@
 
 """MCP tools for semantic search over a data collection (RAG-style queries)."""
 
+import json
 from typing import Optional
 
 import httpx
-import json
 
 from ..config import load_credentials
 from ..oauth2 import get_access_token
@@ -32,18 +32,13 @@ async def netapp_data_engine_search(
     """
 
     try:
-        # Loads configuration (credentials and endpoints) from .netapp file
         config = load_credentials()
-
-        # acquires a valid OAuth2 access token
         access_token = await get_access_token(config)
 
-        # Builds the request parameters for the RAG search API call
         api_params = {"prompt": prompt}
         if max_records is not None:
             api_params["max_records"] = max_records
 
-        # Makes the authenticated API request using the access token
         async with httpx.AsyncClient(verify=config["verify_ssl"]) as client:
 
             headers = {
@@ -59,25 +54,25 @@ async def netapp_data_engine_search(
                 timeout=timeout,
             )
 
-            response.raise_for_status()
-
-            # Try to parse JSON response
+            # Parse the response body as JSON.
             try:
                 json_response = response.json()
-
-                # Check if the response contains an error
-                if isinstance(json_response, dict) and "error" in json_response:
-                    error_info = json_response["error"]
-                    error_message = error_info.get("message", "Unknown error")
-                    error_code = error_info.get("code", "Unknown code")
-                    return f"API Error {error_code}: {error_message}"
-
-                # Convert successful response to formatted string
-                return json.dumps(json_response, indent=2)
-
-            except Exception as json_error:
+            except (ValueError, httpx.DecodingError) as json_error:
                 return f"Failed to parse JSON response: {json_error}. Raw response: {response.text}"
 
+            if not response.is_success:
+                if isinstance(json_response, dict) and "error" in json_response:
+                    error_info = json_response["error"]
+                    if isinstance(error_info, dict):
+                        error_message = error_info.get("message", "Unknown error")
+                        error_code = error_info.get("code", "Unknown code")
+                    else:
+                        error_message = str(error_info)
+                        error_code = response.status_code
+                    return f"API Error {error_code}: {error_message}"
+                response.raise_for_status()
+
+            return json.dumps(json_response, indent=2)
+
     except Exception as e:
-        # Returns an error message if anything fails
         return f"Error performing search: {str(e)}"
