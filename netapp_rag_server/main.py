@@ -1,4 +1,5 @@
 # Copyright 2026 NetApp, Inc. All Rights Reserved.
+
 # Entry point to setup and run the MCP server
 
 import asyncio

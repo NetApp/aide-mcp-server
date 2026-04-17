@@ -1,3 +1,5 @@
+# Copyright 2026 NetApp, Inc. All Rights Reserved.
+
 """Shared async HTTP client for AIDE API requests.
 
 Centralizes all HTTP concerns: URL construction, OAuth2 injection,

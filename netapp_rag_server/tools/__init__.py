@@ -1,3 +1,5 @@
+# Copyright 2026 NetApp, Inc. All Rights Reserved.
+
 """Public MCP tool callables for this package.
 
 As functions are added in workspaces, data_sources, data_collections, search, jobs,
