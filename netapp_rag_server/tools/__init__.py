@@ -1,6 +1,6 @@
 from typing import Optional
-from .config import load_credentials
-from .oauth2 import get_access_token
+from ..config import load_credentials
+from ..oauth2 import get_access_token
 import httpx
 import json
 
