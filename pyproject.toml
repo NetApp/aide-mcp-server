@@ -4,7 +4,7 @@
 name = "netapp-aide-mcp"
 version = "2.0.0a1"
 description = "MCP server for NetApp AI Data Engine"
-readme = "README.md"
+readme = "DOCS/UVX.md"
 requires-python = ">=3.13"
 authors = [
     { name = "Mike Oglesby", email = "Mike.Oglesby@netapp.com" },
