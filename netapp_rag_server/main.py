@@ -73,7 +73,7 @@ PERSONAS = {
         "description": "All Roles",
         "tools": set(range(1, 22)),
         "composites": {"C1", "C2", "C3"},
-        "requires_base_url": False,
+        "requires_base_url": True,
         "requires_data_services": True,
     },
 }
