@@ -205,8 +205,18 @@ async def _async_main(args: argparse.Namespace) -> None:
 
     set_config(config)
 
+    logging.info("Starting OAuth2 login (complete in the browser if prompted)...")
+    await authenticate_eagerly(config)
+
     persona = PERSONAS[args.persona]
     resolved = resolve_tools(args.persona, config)
+
+    logger.info(
+        "Persona '%s' (%s): registering %d tools.",
+        args.persona,
+        persona["description"],
+        len(resolved),
+    )
 
     if not resolved:
         logger.error(
@@ -220,6 +230,7 @@ async def _async_main(args: argparse.Namespace) -> None:
 
     mcp = FastMCP(f"NetApp AIDE Server ({args.persona})")
 
+    # Dynamically import each tool function and register it with mcp.tool().
     by_module: defaultdict[str, list[str]] = defaultdict(list)
     for module_path, func_name in resolved:
         by_module[module_path].append(func_name)
@@ -257,9 +268,6 @@ async def _async_main(args: argparse.Namespace) -> None:
         registered,
         len(resolved),
     )
-
-    logging.info("Starting OAuth2 login (complete in the browser if prompted)...")
-    await authenticate_eagerly(config)
 
     refresh_task = start_token_refresh_loop(config)
 
