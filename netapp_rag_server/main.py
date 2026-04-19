@@ -1,6 +1,10 @@
+# Copyright 2026 NetApp, Inc. All Rights Reserved.
+
 # Entry point to setup and run the MCP server
 
 import argparse
+import asyncio
+import contextlib
 import importlib
 import logging
 import sys
@@ -8,7 +12,9 @@ from collections import defaultdict
 
 from fastmcp import FastMCP
 
+from .client import close_client, set_config
 from .config import load_credentials
+from .oauth2 import authenticate_eagerly, start_token_refresh_loop
 
 logger = logging.getLogger(__name__)
 
@@ -189,15 +195,15 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         )
     return args
 
-def main():
-    logging.basicConfig(level=logging.INFO)
-    args = _parse_args()
 
+async def _async_main(args: argparse.Namespace) -> None:
     try:
         config = load_credentials()
     except Exception as exc:
         logger.error("Configuration error: %s", exc)
         sys.exit(1)
+
+    set_config(config)
 
     persona = PERSONAS[args.persona]
     resolved = resolve_tools(args.persona, config)
@@ -252,7 +258,28 @@ def main():
         len(resolved),
     )
 
-    mcp.run(transport="stdio")
+    logging.info("Starting OAuth2 login (complete in the browser if prompted)...")
+    await authenticate_eagerly(config)
+
+    refresh_task = start_token_refresh_loop(config)
+
+    try:
+        await mcp.run_async(transport="stdio")
+    finally:
+        refresh_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await refresh_task
+        await close_client()
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO)
+    args = _parse_args()
+    try:
+        asyncio.run(_async_main(args))
+    except Exception as e:
+        logging.error(f"Server startup failed: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

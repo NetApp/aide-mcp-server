@@ -1,16 +1,37 @@
+# Copyright 2026 NetApp, Inc. All Rights Reserved.
+
 [project]
-name = "netapp-data-engine-mcp"
-version = "0.1.0"
-description = "MCP server with custom AIDP RAG search functionality"
-readme = "README.md"
-requires-python = ">=3.10"
+name = "netapp-aide-mcp"
+version = "2.0.0a1"
+description = "MCP server for NetApp AI Data Engine"
+readme = "DOCS/UVX.md"
+requires-python = ">=3.13"
 authors = [
-    { name = "Shreya Menneni", email = "Shreya.Menneni@netapp.com" }
+    { name = "Mike Oglesby", email = "Mike.Oglesby@netapp.com" },
+    { name = "Shreya Menneni", email = "Shreya.Menneni@netapp.com" },
+    { name = "Aarkin Karnik", email = "Aarkin.Karnik@netapp.com" },
+    { name = "Rom Adams", email = "Rom.Adams@netapp.com" }
+]
+maintainers = [
+  {name = "NetApp", email = "ng-ai-inquiry@netapp.com"}
 ]
 dependencies = [
     "fastmcp>=3.2.0",
+    "httpx>=0.28.1",
+    "authlib>=1.6.9",
+    "python-multipart>=0.0.22",
+    "starlette>=0.49.1",
+    "PyJWT>=2.12.0",
+    "Pygments>=2.20.0",
+    "cryptography>=46.0.6"
 ]
 license = { file="LICENSE" }
+
+[project.urls]
+Documentation = "https://github.com/NetApp/aide-mcp-server"
+Repository = "https://github.com/NetApp/aide-mcp-server"
+Issues = "https://github.com/NetApp/aide-mcp-server/issues"
+Changelog = "https://github.com/NetApp/aide-mcp-server/releases"
 
 [build-system]
 requires = [
