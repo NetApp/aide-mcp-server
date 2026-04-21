@@ -7,6 +7,7 @@ entities, and composites, import them here and extend ``__all__`` so callers can
 ``from netapp_rag_server.tools import ...`` consistently.
 """
 
+from .entities import aide_workspace_entity_get
 from .search import netapp_data_engine_search
 
-__all__ = ["netapp_data_engine_search"]
+__all__ = ["aide_workspace_entity_get", "netapp_data_engine_search"]
