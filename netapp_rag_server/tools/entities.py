@@ -48,7 +48,7 @@ async def aide_workspace_entity_get(
         )
         return json.dumps(data, indent=2)
     except AideApiError as e:
-        if e.code == "timeout":
+        if e.code in ("timeout", "connection_error"):
             return f"Error: {e.message}"
         return f"API Error {e.code}: {e.message}"
     except AideConfigError as e:
