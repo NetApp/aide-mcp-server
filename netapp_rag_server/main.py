@@ -183,17 +183,10 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--persona",
         choices=list(PERSONAS.keys()),
-        default=None,
+        default="all",
         help="AIDE role that determines which tools are registered.",
     )
-    args = parser.parse_args(argv)
-    if args.persona is None:
-        parser.print_help(sys.stderr)
-        parser.exit(
-            2,
-            "\nerror: the following arguments are required: --persona\n",
-        )
-    return args
+    return parser.parse_args(argv)
 
 
 async def _async_main(args: argparse.Namespace) -> None:
