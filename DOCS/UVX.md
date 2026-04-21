@@ -77,6 +77,18 @@ Before running the server, you need to create a `.netapp` file in your home dire
 >[!TIP]
 >There is an `Examples` folder in the repository that contains a `.netapp.example` file. This file provides examples of how your `.netapp` file should look. You can use this as a reference when creating your own `.netapp` file.
 
+### Personas
+
+The server accepts an optional `--persona` argument that controls which tools are registered based on your AIDE role. If omitted, it defaults to `all`.
+
+| Persona | Description | Tools registered |
+| --- | --- | --- |
+| `admin` | Storage Administrator | Workspace/data-source CRUD, collections read-only, jobs, entities |
+| `data-engineer` | Data Engineer | Workspaces/data-sources read-only, full collection CRUD, search, jobs, entities |
+| `data-scientist` | Data Scientist | Same as data-engineer in Phase 1 |
+| `search-only` | Search Consumer | Semantic search only |
+| `all` | All Roles | Every available tool (default) |
+
 ### Running with uvx
 
 You can run the MCP server instantly, without installing anything globally.
@@ -87,14 +99,15 @@ You can run the MCP server instantly, without installing anything globally.
 #### Run pre-built package from PyPI
 
 ```sh
-# Run the latest stable version
+# Run the latest stable version (defaults to --persona all)
 uvx --from netapp-aide-mcp server
 
-# Run a specific version
-uvx --from netapp-aide-mcp==1.0.0 server
-```
+# Run with a specific persona
+uvx --from netapp-aide-mcp server --persona admin
 
-- `server` script launches the MCP server
+# Run a specific version
+uvx --from netapp-aide-mcp==1.0.0 server --persona data-engineer
+```
 
 #### Build and run from source
 
@@ -109,31 +122,78 @@ cd aide-mcp-server
 # Retrieve the directory path for the cloned repo
 export AIDE_MCP_REPO_PATH=$(pwd)
 
-uvx --from $AIDE_MCP_REPO_PATH server
+uvx --from $AIDE_MCP_REPO_PATH server --persona admin
 ```
-
-- `server` script launches the MCP server
 
 #### Example JSON config
 
-To use this MCP server with an MCP client, you need to configure the client to use this server. For many clients (such as [VS Code](https://code.visualstudio.com/docs/copilot/chat/mcp-servers), [Claude Desktop](https://modelcontextprotocol.io/quickstart/user), and [LMStudio](https://lmstudio.ai/docs/app/mcp)), this requires editing a config file in JSON format (often named mcp.json). Below is an example. Refer to the documentation for your MCP client for specific formatting details.
+To use this MCP server with an MCP client, you need to configure the client to use this server. For many clients (such as [VS Code](https://code.visualstudio.com/docs/copilot/chat/mcp-servers), [Claude Desktop](https://modelcontextprotocol.io/quickstart/user), and [LMStudio](https://lmstudio.ai/docs/app/mcp)), this requires editing a config file in JSON format (often named mcp.json). Below are examples for each persona. Refer to the documentation for your MCP client for specific formatting details.
 
 >[!NOTE]
 >Most MCP clients will take care of starting the MCP server. You typically do not need to start the server yourself. As always, it's best to refer to the documentation for your MCP client for details on how it handles MCP servers.
 
+**Storage Administrator:**
 ```json
 {
-	"servers": {
-		"netapp-aide-mcp": {
-			"type": "stdio",
-			"command": "uvx",
-			"args": [
-				"--from",
-				"netapp-aide-mcp",
-				"server"
-			]
-		}
-	}
+  "mcpServers": {
+    "netapp-aide-admin": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--from", "netapp-aide-mcp", "server", "--persona", "admin"]
+    }
+  }
+}
+```
+
+**Data Engineer:**
+```json
+{
+  "mcpServers": {
+    "netapp-aide-data-engineer": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--from", "netapp-aide-mcp", "server", "--persona", "data-engineer"]
+    }
+  }
+}
+```
+
+**Data Scientist:**
+```json
+{
+  "mcpServers": {
+    "netapp-aide-data-scientist": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--from", "netapp-aide-mcp", "server", "--persona", "data-scientist"]
+    }
+  }
+}
+```
+
+**Search Consumer:**
+```json
+{
+  "mcpServers": {
+    "netapp-aide-search": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--from", "netapp-aide-mcp", "server", "--persona", "search-only"]
+    }
+  }
+}
+```
+
+**All roles (default):**
+```json
+{
+  "mcpServers": {
+    "netapp-aide-mcp": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--from", "netapp-aide-mcp", "server"]
+    }
+  }
 }
 ```
 
