@@ -10,7 +10,8 @@ authors = [
     { name = "Mike Oglesby", email = "Mike.Oglesby@netapp.com" },
     { name = "Shreya Menneni", email = "Shreya.Menneni@netapp.com" },
     { name = "Aarkin Karnik", email = "Aarkin.Karnik@netapp.com" },
-    { name = "Rom Adams", email = "Rom.Adams@netapp.com" }
+    { name = "Rom Adams", email = "Rom.Adams@netapp.com" },
+    { name = "Sushma Madam", email = "Sushma.Madam@netapp.com"}
 ]
 maintainers = [
   {name = "NetApp", email = "ng-ai-inquiry@netapp.com"}
