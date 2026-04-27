@@ -45,28 +45,28 @@ async def aide_data_sources_list(
     current state.
 
     Args:
-        type (Optional[str]): Filter by data source type — ``"volume"`` or ``"bucket"``.
-        state (Optional[str]): Filter by lifecycle state — ``"processing"``, ``"ready"``,
-            ``"failed"``, ``"outdated"``, or ``"deleted"``.
+        type (Optional[str]): Filter by data source type — `"volume"` or `"bucket"`.
+        state (Optional[str]): Filter by lifecycle state — `"processing"`, `"ready"`,
+            `"failed"`, `"outdated"`, or `"deleted"`.
         local_storage_name (Optional[str]): Filter by local storage name
-            (maps to API param ``local_storage.name``).
+            (maps to API param `local_storage.name`).
         local_storage_svm_name (Optional[str]): Filter by SVM name
-            (maps to ``local_storage.svm.name``).
+            (maps to `local_storage.svm.name`).
         remote_storage_name (Optional[str]): Filter by remote storage name
-            (maps to ``remote_storage.name``).
+            (maps to `remote_storage.name`).
         remote_storage_cluster_name (Optional[str]): Filter by remote cluster name
-            (maps to ``remote_storage.cluster.name``).
+            (maps to `remote_storage.cluster.name`).
         max_records (Optional[int]): Maximum number of records to return (≥ 1).
         return_timeout (Optional[int]): Seconds to wait for results (0–120, default 15).
         fields (Optional[str]): Comma-separated list of fields to include in the response.
-        order_by (Optional[str]): Sort order, e.g. ``"name asc,create_time desc"``.
+        order_by (Optional[str]): Sort order, e.g. `"name asc,create_time desc"`.
 
     Returns:
-        str: JSON string with ``num_records``, ``total_records``, and ``records[]``.
-        Each record includes ``uuid``, ``type``, ``state``, ``local_storage``,
-        ``remote_storage``, ``space``, ``last_refresh_time``, ``workspaces``,
-        ``errors``, and ``message``.
-        On error, returns a string beginning with ``"API Error"`` or ``"Error:"``.
+        str: JSON string with `num_records`, `total_records`, and `records[]`.
+        Each record includes `uuid`, `type`, `state`, `local_storage`,
+        `remote_storage`, `space`, `last_refresh_time`, `workspaces`,
+        `errors`, and `message`.
+        On error, returns a string beginning with `"API Error"` or `"Error:"`.
 
     """
     # ONTAP uses dotted path notation for nested filter params
@@ -129,11 +129,11 @@ async def aide_data_source_get(
         fields (Optional[str]): Comma-separated list of fields to include in the response.
 
     Returns:
-        str: JSON string with a single data source object containing ``uuid``,
-        ``type``, ``state``, ``local_storage``, ``remote_storage``, ``space``,
-        ``last_refresh_time``, ``workspaces``, ``errors``, and ``message``.
-        On error, returns a string beginning with ``"API Error"`` or ``"Error:"``.
-        HTTP 404 / error code ``4`` indicates the data source does not exist.
+        str: JSON string with a single data source object containing `uuid`,
+        `type`, `state`, `local_storage`, `remote_storage`, `space`,
+        `last_refresh_time`, `workspaces`, `errors`, and `message`.
+        On error, returns a string beginning with `"API Error"` or `"Error:"`.
+        HTTP 404 / error code `4` indicates the data source does not exist.
 
     """
     params: dict[str, str] = {}
@@ -177,24 +177,24 @@ async def aide_workspace_data_sources_list(
     List data sources within a specific workspace.
 
     Use this when you need to see what storage volumes or buckets a workspace
-    is scanning. Same response shape as ``aide_data_sources_list`` but scoped
+    is scanning. Same response shape as `aide_data_sources_list` but scoped
     to one workspace.
 
     Args:
         workspace_uuid (str): UUID of the workspace containing the data sources.
-        type (Optional[str]): Filter by data source type — ``"volume"`` or ``"bucket"``.
-        state (Optional[str]): Filter by lifecycle state — ``"processing"``, ``"ready"``,
-            ``"failed"``, ``"outdated"``, or ``"deleted"``.
+        type (Optional[str]): Filter by data source type — `"volume"` or `"bucket"`.
+        state (Optional[str]): Filter by lifecycle state — `"processing"`, `"ready"`,
+            `"failed"`, `"outdated"`, or `"deleted"`.
         max_records (Optional[int]): Maximum number of records to return (≥ 1).
         return_timeout (Optional[int]): Seconds to wait for results (0–120, default 15).
         fields (Optional[str]): Comma-separated list of fields to include in the response.
-        order_by (Optional[str]): Sort order, e.g. ``"name asc,create_time desc"``.
+        order_by (Optional[str]): Sort order, e.g. `"name asc,create_time desc"`.
 
     Returns:
-        str: JSON string with ``num_records``, ``total_records``, and ``records[]``.
-        Each record has the same shape as ``aide_data_sources_list`` results
+        str: JSON string with `num_records`, `total_records`, and `records[]`.
+        Each record has the same shape as `aide_data_sources_list` results
         but is scoped to the given workspace.
-        On error, returns a string beginning with ``"API Error"`` or ``"Error:"``.
+        On error, returns a string beginning with `"API Error"` or `"Error:"`.
 
     """
     candidate_params: list[tuple[str, object | None]] = [
@@ -247,7 +247,7 @@ async def aide_workspace_data_source_get(
     """
     Retrieve a specific data source within a workspace.
 
-    Returns the same detail as ``aide_data_source_get`` but scoped to the
+    Returns the same detail as `aide_data_source_get` but scoped to the
     workspace context.
 
     Args:
@@ -257,9 +257,9 @@ async def aide_workspace_data_source_get(
 
     Returns:
         str: JSON string with a single data source object (same shape as
-        ``aide_data_source_get``) scoped to the workspace.
-        On error, returns a string beginning with ``"API Error"`` or ``"Error:"``.
-        HTTP 404 / error code ``4`` indicates the data source does not exist.
+        `aide_data_source_get`) scoped to the workspace.
+        On error, returns a string beginning with `"API Error"` or `"Error:"`.
+        HTTP 404 / error code `4` indicates the data source does not exist.
 
     """
     params: dict[str, str] = {}
@@ -301,28 +301,28 @@ async def aide_workspace_data_source_create(
     Add a data source (storage volume or bucket) to a workspace.
 
     The workspace will begin scanning this data source for entities. Requires
-    ``type`` ("volume" or "bucket") and ``local_storage`` with the volume/
+    `type` ("volume" or "bucket") and `local_storage` with the volume/
     bucket name and SVM. Returns an async job UUID. For cross-cluster data
-    sources, also provide ``remote_storage``.
+    sources, also provide `remote_storage`.
 
     Args:
         workspace_uuid (str): UUID of the workspace to add the data source to.
-        type (str): Data source type — ``"volume"`` or ``"bucket"``.
+        type (str): Data source type — `"volume"` or `"bucket"`.
         local_storage (dict): Local storage configuration. For volumes:
-            ``{"name": "vol1", "svm": {"name": "svm1"}}``. For remote
+            `{"name": "vol1", "svm": {"name": "svm1"}}`. For remote
             data sources, only SVM details are required.
         remote_storage (Optional[dict]): Remote storage configuration for
             cross-cluster sources:
-            ``{"name": "...", "cluster": {"name": "..."}, "svm": {"name": "..."}}``.
+            `{"name": "...", "cluster": {"name": "..."}, "svm": {"name": "..."}}`.
         return_timeout (Optional[int]): Seconds to wait for the async job to complete
             before returning (0–120, default 0 = return immediately with job UUID).
 
     Returns:
         str: JSON string. Typically HTTP 202 async job:
-        ``{"job": {"uuid": "...", "state": "queued", "_links": {...}}}``.
-        If ``return_timeout`` > 0 and the job finishes within that window,
+        `{"job": {"uuid": "...", "state": "queued", "_links": {...}}}`.
+        If `return_timeout` > 0 and the job finishes within that window,
         returns the created data source object (HTTP 201).
-        On error, returns a string beginning with ``"API Error"`` or ``"Error:"``.
+        On error, returns a string beginning with `"API Error"` or `"Error:"`.
 
     """
     body: dict = {"type": type, "local_storage": local_storage}
@@ -373,9 +373,9 @@ async def aide_workspace_data_source_delete(
         uuid (str): UUID of the data source to remove.
 
     Returns:
-        str: JSON string. HTTP 200 synchronous deletion: ``{"status": "deleted"}``.
-        HTTP 202 async job: ``{"job": {"uuid": "...", "state": "queued", "_links": {...}}}``.
-        On error, returns a string beginning with ``"API Error"`` or ``"Error:"``.
+        str: JSON string. HTTP 200 synchronous deletion: `{"status": "deleted"}`.
+        HTTP 202 async job: `{"job": {"uuid": "...", "state": "queued", "_links": {...}}}`.
+        On error, returns a string beginning with `"API Error"` or `"Error:"`.
 
     """
     path = f"/data-engine/workspaces/{workspace_uuid}/data-sources/{uuid}"
