@@ -252,7 +252,7 @@ async def aide_request(
         Parsed JSON response.
 
         - HTTP 202: ``{"job": {"uuid": ..., "state": "queued", "_links": {...}}}``
-        - HTTP 200/201 with empty body: ``{"status": "deleted"}`` /
+        - HTTP 200/201 with empty body or empty JSON object ``{}``: ``{"status": "deleted"}`` /
           ``{"status": "created"}`` / ``{"status": "updated"}``
         - All other 200/201: parsed JSON body.
 
@@ -352,12 +352,24 @@ async def aide_request(
                 status_label = "updated"
             return {"status": status_label}
         try:
-            return response.json()
+            data = response.json()
         except ValueError as exc:
             raise AideApiError(
                 code="parse_error",
                 message=f"Failed to parse API response: {exc}",
             )
+        # Some API endpoints return an empty JSON object {} instead of a
+        # truly empty body. Treat it the same way as a zero-byte response
+        # so callers get a meaningful status label rather than a bare {}.
+        if not data:
+            if method.upper() == "DELETE":
+                status_label = "deleted"
+            elif response.status_code == 201:
+                status_label = "created"
+            else:
+                status_label = "updated"
+            return {"status": status_label}
+        return data
 
     # --- 4xx / 5xx — error -------------------------------------------------
     if response.status_code == 403:

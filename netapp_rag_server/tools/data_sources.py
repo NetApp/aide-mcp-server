@@ -45,27 +45,50 @@ async def aide_data_sources_list(
     current state.
 
     Args:
-        type (Optional[str]): Filter by data source type — `"volume"` or `"bucket"`.
-        state (Optional[str]): Filter by lifecycle state — `"processing"`, `"ready"`,
+        type (str):
+            Optional. Filter by data source type — `"volume"` or `"bucket"`.
+        state (str):
+            Optional. Filter by lifecycle state — `"processing"`, `"ready"`,
             `"failed"`, `"outdated"`, or `"deleted"`.
-        local_storage_name (Optional[str]): Filter by local storage name
+        local_storage_name (str):
+            Optional. Filter by local storage name
             (maps to API param `local_storage.name`).
-        local_storage_svm_name (Optional[str]): Filter by SVM name
+        local_storage_svm_name (str):
+            Optional. Filter by SVM name
             (maps to `local_storage.svm.name`).
-        remote_storage_name (Optional[str]): Filter by remote storage name
+        remote_storage_name (str):
+            Optional. Filter by remote storage name
             (maps to `remote_storage.name`).
-        remote_storage_cluster_name (Optional[str]): Filter by remote cluster name
+        remote_storage_cluster_name (str):
+            Optional. Filter by remote cluster name
             (maps to `remote_storage.cluster.name`).
-        max_records (Optional[int]): Maximum number of records to return (≥ 1).
-        return_timeout (Optional[int]): Seconds to wait for results (0–120, default 15).
-        fields (Optional[str]): Comma-separated list of fields to include in the response.
-        order_by (Optional[str]): Sort order, e.g. `"name asc,create_time desc"`.
+        max_records (int):
+            Optional. Maximum number of records to return (≥ 1).
+        return_timeout (int):
+            Optional. Seconds to wait for results (0–120, default 15).
+        fields (str):
+            Optional. Comma-separated list of fields to include in the response.
+        order_by (str):
+            Optional. Sort order, e.g. `"name asc,create_time desc"`.
 
     Returns:
-        str: JSON string with `num_records`, `total_records`, and `records[]`.
-        Each record includes `uuid`, `type`, `state`, `local_storage`,
-        `remote_storage`, `space`, `last_refresh_time`, `workspaces`,
-        `errors`, and `message`.
+        str: JSON string with the following fields:
+            - `num_records` (int): Number of records returned in this page.
+            - `total_records` (int): Total number of matching records.
+            - `records` (list): List of data source objects. By default, each
+              record contains only `uuid`. Use the `fields` parameter to request
+              additional fields:
+                - `uuid` (str): Unique identifier of the data source.
+                - `workspaces` (list): Workspaces this data source belongs to, each with `uuid` and `name`.
+                - `type` (str): Data source type — `"volume"` or `"bucket"`.
+                - `space` (dict): Space usage with `total`, `used`, and `available` in bytes.
+                - `message` (str): Human-readable status message.
+                - `last_refresh_time` (str): ISO 8601 timestamp of the last scan.
+                - `state` (str): Lifecycle state — `"processing"`, `"ready"`, `"failed"`, `"outdated"`, or `"deleted"`.
+                - `local_storage` (dict): Local storage info with `uuid`, `name`, and `svm` (`uuid`, `name`).
+                - `remote_storage` (dict): Remote storage info, if applicable. Omitted when not set.
+                - `errors` (list): Any errors associated with the data source. Omitted when empty.
+
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
 
     """
@@ -121,17 +144,27 @@ async def aide_data_source_get(
     """
     Retrieve details of a specific cluster-wide data source by UUID.
 
-    Returns type, state, local/remote storage info, space usage, associated
-    workspaces, and errors.
+    Returns type, state, local/remote storage info, space usage and errors.
 
     Args:
-        uuid (str): Unique identifier of the data source.
-        fields (Optional[str]): Comma-separated list of fields to include in the response.
+        uuid (str):
+            Required. Unique identifier of the data source.
+        fields (str):
+            Optional. Comma-separated list of fields to include in the response.
 
     Returns:
-        str: JSON string with a single data source object containing `uuid`,
-        `type`, `state`, `local_storage`, `remote_storage`, `space`,
-        `last_refresh_time`, `workspaces`, `errors`, and `message`.
+        str: JSON string with a single data source object containing:
+            - `uuid` (str): Unique identifier of the data source.
+            - `workspaces` (list): Workspaces this data source belongs to, each with `uuid` and `name`.
+            - `type` (str): Data source type — `"volume"` or `"bucket"`.
+            - `space` (dict): Space usage with `total`, `used`, and `available` in bytes.
+            - `message` (str): Human-readable status message.
+            - `last_refresh_time` (str): ISO 8601 timestamp of the last scan.
+            - `state` (str): Lifecycle state — `"processing"`, `"ready"`, `"failed"`, `"outdated"`, or `"deleted"`.
+            - `local_storage` (dict): Local storage info with `uuid`, `name`, and `svm` (`uuid`, `name`).
+            - `remote_storage` (dict): Remote storage info, if applicable. Omitted when not set.
+            - `errors` (list): Any errors associated with the data source. Omitted when empty.
+
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
         HTTP 404 / error code `4` indicates the data source does not exist.
 
@@ -181,19 +214,40 @@ async def aide_workspace_data_sources_list(
     to one workspace.
 
     Args:
-        workspace_uuid (str): UUID of the workspace containing the data sources.
-        type (Optional[str]): Filter by data source type — `"volume"` or `"bucket"`.
-        state (Optional[str]): Filter by lifecycle state — `"processing"`, `"ready"`,
+        workspace_uuid (str):
+            Required. UUID of the workspace containing the data sources.
+        type (str):
+            Optional. Filter by data source type — `"volume"` or `"bucket"`.
+        state (str):
+            Optional. Filter by lifecycle state — `"processing"`, `"ready"`,
             `"failed"`, `"outdated"`, or `"deleted"`.
-        max_records (Optional[int]): Maximum number of records to return (≥ 1).
-        return_timeout (Optional[int]): Seconds to wait for results (0–120, default 15).
-        fields (Optional[str]): Comma-separated list of fields to include in the response.
-        order_by (Optional[str]): Sort order, e.g. `"name asc,create_time desc"`.
+        max_records (int):
+            Optional. Maximum number of records to return (≥ 1).
+        return_timeout (int):
+            Optional. Seconds to wait for results (0–120, default 15).
+        fields (str):
+            Optional. Comma-separated list of fields to include in the response.
+        order_by (str):
+            Optional. Sort order, e.g. `"name asc,create_time desc"`.
 
     Returns:
-        str: JSON string with `num_records`, `total_records`, and `records[]`.
-        Each record has the same shape as `aide_data_sources_list` results
-        but is scoped to the given workspace.
+        str: JSON string with the following fields:
+            - `num_records` (int): Number of records returned in this page.
+            - `total_records` (int): Total number of matching records.
+            - `records` (list): List of data source objects. By default, each
+              record contains only `uuid`. Use the `fields` parameter to request
+              additional fields:
+                - `workspace` (dict): The parent workspace, containing `uuid`.
+                - `uuid` (str): Unique identifier of the data source.
+                - `type` (str): Data source type — `"volume"` or `"bucket"`.
+                - `space` (dict): Space usage with `total`, `used`, and `available` in bytes.
+                - `message` (str): Human-readable status message.
+                - `last_refresh_time` (str): ISO 8601 timestamp of the last scan.
+                - `state` (str): Lifecycle state — `"processing"`, `"ready"`, `"failed"`, `"outdated"`, or `"deleted"`.
+                - `local_storage` (dict): Local storage info with `uuid`, `name`, and `svm` (`uuid`, `name`).
+                - `remote_storage` (dict): Remote storage info, if applicable. Omitted when not set.
+                - `errors` (list): Any errors associated with the data source. Omitted when empty.
+
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
 
     """
@@ -251,13 +305,26 @@ async def aide_workspace_data_source_get(
     workspace context.
 
     Args:
-        workspace_uuid (str): UUID of the parent workspace.
-        uuid (str): UUID of the data source to retrieve.
-        fields (Optional[str]): Comma-separated list of fields to include in the response.
+        workspace_uuid (str):
+            Required. UUID of the parent workspace.
+        uuid (str):
+            Required. UUID of the data source to retrieve.
+        fields (str):
+            Optional. Comma-separated list of fields to include in the response.
 
     Returns:
-        str: JSON string with a single data source object (same shape as
-        `aide_data_source_get`) scoped to the workspace.
+        str: JSON string with a single data source object containing:
+            - `workspace` (dict): The parent workspace, containing `uuid`.
+            - `uuid` (str): Unique identifier of the data source.
+            - `type` (str): Data source type — `"volume"` or `"bucket"`.
+            - `space` (dict): Space usage with `total`, `used`, and `available` in bytes.
+            - `message` (str): Human-readable status message.
+            - `last_refresh_time` (str): ISO 8601 timestamp of the last scan.
+            - `state` (str): Lifecycle state — `"processing"`, `"ready"`, `"failed"`, `"outdated"`, or `"deleted"`.
+            - `local_storage` (dict): Local storage info with `uuid`, `name`, and `svm` (`uuid`, `name`).
+            - `remote_storage` (dict): Remote storage info, if applicable. Omitted when not set.
+            - `errors` (list): Any errors associated with the data source. Omitted when empty.
+
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
         HTTP 404 / error code `4` indicates the data source does not exist.
 
@@ -306,22 +373,34 @@ async def aide_workspace_data_source_create(
     sources, also provide `remote_storage`.
 
     Args:
-        workspace_uuid (str): UUID of the workspace to add the data source to.
-        type (str): Data source type — `"volume"` or `"bucket"`.
-        local_storage (dict): Local storage configuration. For volumes:
+        workspace_uuid (str):
+            Required. UUID of the workspace to add the data source to.
+        type (str):
+            Required. Data source type — `"volume"` or `"bucket"`.
+        local_storage (dict):
+            Required. Local storage configuration. For volumes:
             `{"name": "vol1", "svm": {"name": "svm1"}}`. For remote
             data sources, only SVM details are required.
-        remote_storage (Optional[dict]): Remote storage configuration for
-            cross-cluster sources:
+        remote_storage (dict):
+            Optional. Remote storage configuration for cross-cluster sources:
             `{"name": "...", "cluster": {"name": "..."}, "svm": {"name": "..."}}`.
-        return_timeout (Optional[int]): Seconds to wait for the async job to complete
+        return_timeout (int):
+            Optional. Seconds to wait for the async job to complete
             before returning (0–120, default 0 = return immediately with job UUID).
 
     Returns:
-        str: JSON string. Typically HTTP 202 async job:
-        `{"job": {"uuid": "...", "state": "queued", "_links": {...}}}`.
+        str: JSON string. Typically HTTP 202 async job with:
+            - `job.uuid` (str): UUID of the async job to track progress.
+            - `job.state` (str): Initial job state, typically `"queued"`.
+            - `job._links` (dict): Links to poll job status.
+
         If `return_timeout` > 0 and the job finishes within that window,
-        returns the created data source object (HTTP 201).
+        returns the created data source object (HTTP 201) with:
+            - `uuid` (str): UUID of the newly created data source.
+            - `type` (str): Data source type — `"volume"` or `"bucket"`.
+            - `state` (str): Initial state, typically `"processing"`.
+            - `local_storage` (dict): Local storage info with `name` and `svm.name`.
+
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
 
     """
@@ -369,12 +448,20 @@ async def aide_workspace_data_source_delete(
     next refresh. May return an async job UUID.
 
     Args:
-        workspace_uuid (str): UUID of the parent workspace.
-        uuid (str): UUID of the data source to remove.
+        workspace_uuid (str):
+            Required. UUID of the parent workspace.
+        uuid (str):
+            Required. UUID of the data source to remove.
 
     Returns:
-        str: JSON string. HTTP 200 synchronous deletion: `{"status": "deleted"}`.
-        HTTP 202 async job: `{"job": {"uuid": "...", "state": "queued", "_links": {...}}}`.
+        str: JSON string. HTTP 200 synchronous deletion with:
+            - `status` (str): Set to `"deleted"` on success.
+
+        HTTP 202 async job with:
+            - `job.uuid` (str): UUID of the async job to track progress.
+            - `job.state` (str): Initial job state, typically `"queued"`.
+            - `job._links` (dict): Links to poll job status.
+
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
 
     """
