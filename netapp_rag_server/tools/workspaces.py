@@ -71,3 +71,44 @@ async def aide_workspaces_list(
         return f"Error: {e}"
     except Exception as e:
         return f"Error: {type(e).__name__}: {e}"
+
+
+async def aide_workspace_get(
+    uuid: str,
+    fields: Optional[str] = None,
+) -> str:
+    """
+    Retrieve full details of a specific AIDE workspace by its UUID. Returns the
+    workspace's name, state, owner, entity count, data collection count, space
+    usage, version info, attached policies, refresh interval, and any errors.
+    Use `fields` to request only specific properties (e.g.
+    `fields="state,errors,last_refresh_time"` for a quick health check).
+
+    Args:
+        uuid (str): Unique identifier of the workspace.
+        fields (Optional[str]): CSV list of fields to include in the response.
+
+    Returns:
+        str: JSON string with the workspace object.
+
+    """
+    params: dict[str, str] = {}
+    if fields is not None:
+        params["fields"] = fields
+
+    try:
+        data = await aide_request(
+            "GET",
+            f"/data-engine/workspaces/{uuid}",
+            params=params if params else None,
+            use_data_services=False,
+        )
+        return json.dumps(data, indent=2)
+    except AideApiError as e:
+        if e.code in ("timeout", "connection_error"):
+            return f"Error: {e.message}"
+        return f"API Error {e.code}: {e.message}"
+    except AideConfigError as e:
+        return f"Error: {e}"
+    except Exception as e:
+        return f"Error: {type(e).__name__}: {e}"
