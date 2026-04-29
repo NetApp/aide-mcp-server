@@ -20,5 +20,4 @@ __all__ = [
     "aide_data_collection_get",
     "aide_data_collections_list",
     "aide_workspace_entities_list",
-    "aide_workspace_entity_get",
 ]
