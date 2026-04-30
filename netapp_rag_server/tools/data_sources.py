@@ -100,6 +100,10 @@ async def aide_data_sources_list(
 
     """
     # ONTAP uses dotted path notation for nested filter params
+    if datasource_type is not None and datasource_type not in ("volume", "bucket"):
+        return 'Error: datasource_type must be "volume" or "bucket"'
+    if max_records is not None and (not isinstance(max_records, int) or max_records < 1):
+        return 'Error: max_records must be an integer ≥ 1'
     if return_timeout is not None and (not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120)):
         return 'Error: return_timeout must be an integer between 0 and 120'
 
@@ -272,6 +276,10 @@ async def aide_workspace_data_sources_list(
     if not _UUID_RE.match(workspace_uuid):
         return f'Error: invalid UUID format: "{workspace_uuid}"'
 
+    if datasource_type is not None and datasource_type not in ("volume", "bucket"):
+        return 'Error: datasource_type must be "volume" or "bucket"'
+    if max_records is not None and (not isinstance(max_records, int) or max_records < 1):
+        return 'Error: max_records must be an integer ≥ 1'
     if return_timeout is not None and (not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120)):
         return 'Error: return_timeout must be an integer between 0 and 120'
 
@@ -439,9 +447,13 @@ async def aide_workspace_data_source_create(
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
         Returns ``'Error: invalid UUID format: "..."'`` immediately if
         `workspace_uuid` is not a valid UUID. Returns ``'Error: type must
-        be "volume" or "bucket"'`` for an invalid type. Returns
-        ``'Error: local_storage must be a dict with at least "name" and "svm" keys'``
-        for a malformed local_storage argument.
+        be "volume" or "bucket"'`` for an invalid `datasource_type`. Returns
+        ``'Error: local_storage must be a dict with at least a "name" key...'``
+        if `local_storage` is missing or has no `"name"`. Returns
+        ``'Error: local_storage must include an "svm" key...'`` if `"svm"` is
+        absent for a local data source. Returns
+        ``'Error: local_storage["svm"] must be a dict...'`` if `"svm"` is not
+        a dict.
 
     """
     if not _UUID_RE.match(workspace_uuid):
@@ -458,10 +470,12 @@ async def aide_workspace_data_source_create(
     # needed in local_storage, but "name" is still required as the local anchor.
     if not isinstance(local_storage, dict) or "name" not in local_storage:
         return 'Error: local_storage must be a dict with at least a "name" key, e.g. {"name": "vol1", "svm": {"name": "svm1"}}'
-    if remote_storage is None and "svm" not in local_storage:
-        return 'Error: local_storage must include an "svm" key for local data sources, e.g. {"name": "vol1", "svm": {"name": "svm1"}}'
-    if remote_storage is None and not isinstance(local_storage.get("svm"), dict):
-        return 'Error: local_storage["svm"] must be a dict, e.g. {"name": "svm1"}'
+    if remote_storage is None:
+        svm = local_storage.get("svm")
+        if not svm:
+            return 'Error: local_storage must include an "svm" key for local data sources, e.g. {"name": "vol1", "svm": {"name": "svm1"}}'
+        if not isinstance(svm, dict):
+            return 'Error: local_storage["svm"] must be a dict, e.g. {"name": "svm1"}'
 
     body: dict = {"type": datasource_type, "local_storage": local_storage}
     if remote_storage is not None:

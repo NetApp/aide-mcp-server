@@ -345,14 +345,13 @@ async def aide_request(
 
     # --- HTTP 200 / 201 — success ------------------------------------------
     if response.status_code in (200, 201):
-        if not response.content:
+        def _status_label() -> str:
             if method.upper() == "DELETE":
-                status_label = "deleted"
-            elif response.status_code == 201:
-                status_label = "created"
-            else:
-                status_label = "updated"
-            return {"status": status_label}
+                return "deleted"
+            return "created" if response.status_code == 201 else "updated"
+
+        if not response.content:
+            return {"status": _status_label()}
         try:
             data = response.json()
         except ValueError as exc:
@@ -364,13 +363,7 @@ async def aide_request(
         # truly empty body. Treat it the same way as a zero-byte response
         # so callers get a meaningful status label rather than a bare {}.
         if isinstance(data, dict) and not data:
-            if method.upper() == "DELETE":
-                status_label = "deleted"
-            elif response.status_code == 201:
-                status_label = "created"
-            else:
-                status_label = "updated"
-            return {"status": status_label}
+            return {"status": _status_label()}
         return data
 
     # --- 4xx / 5xx — error -------------------------------------------------
