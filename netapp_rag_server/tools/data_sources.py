@@ -109,7 +109,7 @@ async def aide_data_sources_list(
         return 'Error: type must be "volume" or "bucket"'
     if max_records is not None and (not isinstance(max_records, int) or max_records < 1):
         return 'Error: max_records must be an integer ≥ 1'
-    if return_timeout is not None and (not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120)):
+    if return_timeout is not None and (isinstance(return_timeout, bool) or not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120)):
         return 'Error: return_timeout must be an integer between 0 and 120'
 
     candidate_params: list[tuple[str, object | None]] = [
@@ -290,7 +290,7 @@ async def aide_workspace_data_sources_list(
         return 'Error: type must be "volume" or "bucket"'
     if max_records is not None and (not isinstance(max_records, int) or max_records < 1):
         return 'Error: max_records must be an integer ≥ 1'
-    if return_timeout is not None and (not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120)):
+    if return_timeout is not None and (isinstance(return_timeout, bool) or not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120)):
         return 'Error: return_timeout must be an integer between 0 and 120'
 
     candidate_params: list[tuple[str, object | None]] = [
