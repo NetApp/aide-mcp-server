@@ -97,7 +97,7 @@ async def aide_data_sources_list(
                 - `errors` (list): Any errors associated with the data source. Omitted when empty.
 
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
-        Returns ``'Error: datasource_type must be "volume" or "bucket"'`` for
+        Returns ``'Error: type must be "volume" or "bucket"'`` for
         an invalid `type`. Returns ``'Error: max_records must be an
         integer ≥ 1'`` for an out-of-range `max_records`. Returns
         ``'Error: return_timeout must be an integer between 0 and 120'`` for an
@@ -106,7 +106,7 @@ async def aide_data_sources_list(
     """
     # ONTAP uses dotted path notation for nested filter params
     if type is not None and type not in ("volume", "bucket"):
-        return 'Error: datasource_type must be "volume" or "bucket"'
+        return 'Error: type must be "volume" or "bucket"'
     if max_records is not None and (not isinstance(max_records, int) or max_records < 1):
         return 'Error: max_records must be an integer ≥ 1'
     if return_timeout is not None and (not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120)):
@@ -276,7 +276,7 @@ async def aide_workspace_data_sources_list(
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
         Returns ``'Error: invalid UUID format: "..."'`` immediately if
         `workspace_uuid` is not a valid UUID. Returns
-        ``'Error: datasource_type must be "volume" or "bucket"'`` for an
+        ``'Error: type must be "volume" or "bucket"'`` for an
         invalid `type`. Returns ``'Error: max_records must be an
         integer ≥ 1'`` for an out-of-range `max_records`. Returns
         ``'Error: return_timeout must be an integer between 0 and 120'`` for an
@@ -287,7 +287,7 @@ async def aide_workspace_data_sources_list(
         return f'Error: invalid UUID format: "{workspace_uuid}"'
 
     if type is not None and type not in ("volume", "bucket"):
-        return 'Error: datasource_type must be "volume" or "bucket"'
+        return 'Error: type must be "volume" or "bucket"'
     if max_records is not None and (not isinstance(max_records, int) or max_records < 1):
         return 'Error: max_records must be an integer ≥ 1'
     if return_timeout is not None and (not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120)):
@@ -457,7 +457,7 @@ async def aide_workspace_data_source_create(
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
         Returns ``'Error: invalid UUID format: "..."'`` immediately if
         `workspace_uuid` is not a valid UUID. Returns ``'Error: type must
-        be "volume" or "bucket"'`` for an invalid `type`. Returns
+        be "volume" or "bucket", got "..."'`` for an invalid `type`. Returns
         ``'Error: local_storage must be a dict with at least a "name" key...'``
         if `local_storage` is missing or has no `"name"`. Returns
         ``'Error: local_storage must include an "svm" key...'`` if `"svm"` is
@@ -472,7 +472,7 @@ async def aide_workspace_data_source_create(
     if type not in ("volume", "bucket"):
         return f'Error: type must be "volume" or "bucket", got "{type}"'
 
-    if not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120):
+    if isinstance(return_timeout, bool) or not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120):
         return 'Error: return_timeout must be an integer between 0 and 120'
 
     # For local (non-cross-cluster) volumes, both "name" and "svm" are required.
