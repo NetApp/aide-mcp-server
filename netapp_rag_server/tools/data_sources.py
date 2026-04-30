@@ -15,9 +15,16 @@ Tools implemented here
 from __future__ import annotations
 
 import json
+import re
 from typing import Optional
 
 from ..client import AideApiError, AideConfigError, aide_request
+
+# Compiled UUID pattern reused across all tools for early input validation.
+_UUID_RE = re.compile(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    re.IGNORECASE,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -110,6 +117,7 @@ async def aide_data_sources_list(
     for query_param, value in candidate_params:
         if value is None:
             continue
+        # Guard for future bool params (none currently, but kept for consistency)
         if isinstance(value, bool):
             params[query_param] = "true" if value else "false"
         elif isinstance(value, (str, int)):
@@ -166,9 +174,14 @@ async def aide_data_source_get(
             - `errors` (list): Any errors associated with the data source. Omitted when empty.
 
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
+        Returns ``'Error: invalid UUID format: "..."'`` immediately if `uuid`
+        is not a valid UUID (e.g. ``xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx``).
         HTTP 404 / error code `4` indicates the data source does not exist.
 
     """
+    if not _UUID_RE.match(uuid):
+        return f'Error: invalid UUID format: "{uuid}"'
+
     params: dict[str, str] = {}
     if fields is not None:
         params["fields"] = fields
@@ -249,8 +262,13 @@ async def aide_workspace_data_sources_list(
                 - `errors` (list): Any errors associated with the data source. Omitted when empty.
 
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
+        Returns ``'Error: invalid UUID format: "..."'`` immediately if
+        `workspace_uuid` is not a valid UUID.
 
     """
+    if not _UUID_RE.match(workspace_uuid):
+        return f'Error: invalid UUID format: "{workspace_uuid}"'
+
     candidate_params: list[tuple[str, object | None]] = [
         ("type", ds_type),
         ("state", state),
@@ -264,6 +282,7 @@ async def aide_workspace_data_sources_list(
     for query_param, value in candidate_params:
         if value is None:
             continue
+        # Guard for future bool params (none currently, but kept for consistency)
         if isinstance(value, bool):
             params[query_param] = "true" if value else "false"
         elif isinstance(value, (str, int)):
@@ -326,9 +345,16 @@ async def aide_workspace_data_source_get(
             - `errors` (list): Any errors associated with the data source. Omitted when empty.
 
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
+        Returns ``'Error: invalid UUID format: "..."'`` immediately if
+        `workspace_uuid` or `uuid` is not a valid UUID.
         HTTP 404 / error code `4` indicates the data source does not exist.
 
     """
+    if not _UUID_RE.match(workspace_uuid):
+        return f'Error: invalid UUID format: "{workspace_uuid}"'
+    if not _UUID_RE.match(uuid):
+        return f'Error: invalid UUID format: "{uuid}"'
+
     params: dict[str, str] = {}
     if fields is not None:
         params["fields"] = fields
@@ -362,7 +388,7 @@ async def aide_workspace_data_source_create(
     ds_type: str,
     local_storage: dict,
     remote_storage: Optional[dict] = None,
-    return_timeout: Optional[int] = None,
+    return_timeout: int = 0,
 ) -> str:
     """
     Add a data source (storage volume or bucket) to a workspace.
@@ -402,18 +428,27 @@ async def aide_workspace_data_source_create(
             - `local_storage` (dict): Local storage info with `name` and `svm.name`.
 
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
+        Returns ``'Error: invalid UUID format: "..."'`` immediately if
+        `workspace_uuid` is not a valid UUID. Returns ``'Error: ds_type must
+        be "volume" or "bucket"'`` for an invalid type. Returns
+        ``'Error: local_storage must be a dict with at least a "name" key'``
+        for a malformed local_storage argument.
 
     """
+    if not _UUID_RE.match(workspace_uuid):
+        return f'Error: invalid UUID format: "{workspace_uuid}"'
+
     if ds_type not in ("volume", "bucket"):
         return f'Error: ds_type must be "volume" or "bucket", got "{ds_type}"'
+
+    if not isinstance(local_storage, dict) or "name" not in local_storage:
+        return 'Error: local_storage must be a dict with at least a "name" key, e.g. {"name": "vol1", "svm": {"name": "svm1"}}'
 
     body: dict = {"type": ds_type, "local_storage": local_storage}
     if remote_storage is not None:
         body["remote_storage"] = remote_storage
 
-    params: dict[str, int] = {}
-    if return_timeout is not None:
-        params["return_timeout"] = return_timeout
+    params: dict[str, int] = {"return_timeout": return_timeout}
 
     path = f"/data-engine/workspaces/{workspace_uuid}/data-sources"
 
@@ -466,8 +501,15 @@ async def aide_workspace_data_source_delete(
             - `job._links` (dict): Links to poll job status.
 
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
+        Returns ``'Error: invalid UUID format: "..."'`` immediately if
+        `workspace_uuid` or `uuid` is not a valid UUID.
 
     """
+    if not _UUID_RE.match(workspace_uuid):
+        return f'Error: invalid UUID format: "{workspace_uuid}"'
+    if not _UUID_RE.match(uuid):
+        return f'Error: invalid UUID format: "{uuid}"'
+
     path = f"/data-engine/workspaces/{workspace_uuid}/data-sources/{uuid}"
 
     try:
