@@ -32,7 +32,7 @@ _UUID_RE = re.compile(
 # ---------------------------------------------------------------------------
 
 async def aide_data_sources_list(
-    datasource_type: Optional[str] = None,
+    type: Optional[str] = None,
     state: Optional[str] = None,
     local_storage_name: Optional[str] = None,
     local_storage_svm_name: Optional[str] = None,
@@ -52,7 +52,7 @@ async def aide_data_sources_list(
     current state.
 
     Args:
-        datasource_type (str):
+        type (str):
             Optional. Filter by data source type — `"volume"` or `"bucket"`.
         state (str):
             Optional. Filter by lifecycle state — `"processing"`, `"ready"`,
@@ -98,14 +98,14 @@ async def aide_data_sources_list(
 
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
         Returns ``'Error: datasource_type must be "volume" or "bucket"'`` for
-        an invalid `datasource_type`. Returns ``'Error: max_records must be an
+        an invalid `type`. Returns ``'Error: max_records must be an
         integer ≥ 1'`` for an out-of-range `max_records`. Returns
         ``'Error: return_timeout must be an integer between 0 and 120'`` for an
         out-of-range `return_timeout`.
 
     """
     # ONTAP uses dotted path notation for nested filter params
-    if datasource_type is not None and datasource_type not in ("volume", "bucket"):
+    if type is not None and type not in ("volume", "bucket"):
         return 'Error: datasource_type must be "volume" or "bucket"'
     if max_records is not None and (not isinstance(max_records, int) or max_records < 1):
         return 'Error: max_records must be an integer ≥ 1'
@@ -113,7 +113,7 @@ async def aide_data_sources_list(
         return 'Error: return_timeout must be an integer between 0 and 120'
 
     candidate_params: list[tuple[str, object | None]] = [
-        ("type", datasource_type),
+        ("type", type),
         ("state", state),
         ("local_storage.name", local_storage_name),
         ("local_storage.svm.name", local_storage_svm_name),
@@ -224,7 +224,7 @@ async def aide_data_source_get(
 
 async def aide_workspace_data_sources_list(
     workspace_uuid: str,
-    datasource_type: Optional[str] = None,
+    type: Optional[str] = None,
     state: Optional[str] = None,
     max_records: Optional[int] = None,
     return_timeout: Optional[int] = None,
@@ -241,7 +241,7 @@ async def aide_workspace_data_sources_list(
     Args:
         workspace_uuid (str):
             Required. UUID of the workspace containing the data sources.
-        datasource_type (str):
+        type (str):
             Optional. Filter by data source type — `"volume"` or `"bucket"`.
         state (str):
             Optional. Filter by lifecycle state — `"processing"`, `"ready"`,
@@ -277,7 +277,7 @@ async def aide_workspace_data_sources_list(
         Returns ``'Error: invalid UUID format: "..."'`` immediately if
         `workspace_uuid` is not a valid UUID. Returns
         ``'Error: datasource_type must be "volume" or "bucket"'`` for an
-        invalid `datasource_type`. Returns ``'Error: max_records must be an
+        invalid `type`. Returns ``'Error: max_records must be an
         integer ≥ 1'`` for an out-of-range `max_records`. Returns
         ``'Error: return_timeout must be an integer between 0 and 120'`` for an
         out-of-range `return_timeout`.
@@ -286,7 +286,7 @@ async def aide_workspace_data_sources_list(
     if not _UUID_RE.match(workspace_uuid):
         return f'Error: invalid UUID format: "{workspace_uuid}"'
 
-    if datasource_type is not None and datasource_type not in ("volume", "bucket"):
+    if type is not None and type not in ("volume", "bucket"):
         return 'Error: datasource_type must be "volume" or "bucket"'
     if max_records is not None and (not isinstance(max_records, int) or max_records < 1):
         return 'Error: max_records must be an integer ≥ 1'
@@ -294,7 +294,7 @@ async def aide_workspace_data_sources_list(
         return 'Error: return_timeout must be an integer between 0 and 120'
 
     candidate_params: list[tuple[str, object | None]] = [
-        ("type", datasource_type),
+        ("type", type),
         ("state", state),
         ("max_records", max_records),
         ("return_timeout", return_timeout),
@@ -409,7 +409,7 @@ async def aide_workspace_data_source_get(
 
 async def aide_workspace_data_source_create(
     workspace_uuid: str,
-    datasource_type: str,
+    type: str,
     local_storage: dict,
     remote_storage: Optional[dict] = None,
     return_timeout: int = 0,
@@ -425,7 +425,7 @@ async def aide_workspace_data_source_create(
     Args:
         workspace_uuid (str):
             Required. UUID of the workspace to add the data source to.
-        datasource_type (str):
+        type (str):
             Required. Data source type — `"volume"` or `"bucket"`.
         local_storage (dict):
             Required. Local storage configuration. For volumes:
@@ -457,7 +457,7 @@ async def aide_workspace_data_source_create(
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
         Returns ``'Error: invalid UUID format: "..."'`` immediately if
         `workspace_uuid` is not a valid UUID. Returns ``'Error: type must
-        be "volume" or "bucket"'`` for an invalid `datasource_type`. Returns
+        be "volume" or "bucket"'`` for an invalid `type`. Returns
         ``'Error: local_storage must be a dict with at least a "name" key...'``
         if `local_storage` is missing or has no `"name"`. Returns
         ``'Error: local_storage must include an "svm" key...'`` if `"svm"` is
@@ -469,8 +469,8 @@ async def aide_workspace_data_source_create(
     if not _UUID_RE.match(workspace_uuid):
         return f'Error: invalid UUID format: "{workspace_uuid}"'
 
-    if datasource_type not in ("volume", "bucket"):
-        return f'Error: type must be "volume" or "bucket", got "{datasource_type}"'
+    if type not in ("volume", "bucket"):
+        return f'Error: type must be "volume" or "bucket", got "{type}"'
 
     if not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120):
         return 'Error: return_timeout must be an integer between 0 and 120'
@@ -487,7 +487,7 @@ async def aide_workspace_data_source_create(
         if not isinstance(svm, dict):
             return 'Error: local_storage["svm"] must be a dict, e.g. {"name": "svm1"}'
 
-    body: dict = {"type": datasource_type, "local_storage": local_storage}
+    body: dict = {"type": type, "local_storage": local_storage}
     if remote_storage is not None:
         body["remote_storage"] = remote_storage
 
