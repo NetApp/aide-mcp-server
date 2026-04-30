@@ -97,6 +97,11 @@ async def aide_data_sources_list(
                 - `errors` (list): Any errors associated with the data source. Omitted when empty.
 
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
+        Returns ``'Error: datasource_type must be "volume" or "bucket"'`` for
+        an invalid `datasource_type`. Returns ``'Error: max_records must be an
+        integer ≥ 1'`` for an out-of-range `max_records`. Returns
+        ``'Error: return_timeout must be an integer between 0 and 120'`` for an
+        out-of-range `return_timeout`.
 
     """
     # ONTAP uses dotted path notation for nested filter params
@@ -270,7 +275,12 @@ async def aide_workspace_data_sources_list(
 
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
         Returns ``'Error: invalid UUID format: "..."'`` immediately if
-        `workspace_uuid` is not a valid UUID.
+        `workspace_uuid` is not a valid UUID. Returns
+        ``'Error: datasource_type must be "volume" or "bucket"'`` for an
+        invalid `datasource_type`. Returns ``'Error: max_records must be an
+        integer ≥ 1'`` for an out-of-range `max_records`. Returns
+        ``'Error: return_timeout must be an integer between 0 and 120'`` for an
+        out-of-range `return_timeout`.
 
     """
     if not _UUID_RE.match(workspace_uuid):
