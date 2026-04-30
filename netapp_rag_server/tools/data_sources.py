@@ -25,7 +25,7 @@ from ..client import AideApiError, AideConfigError, aide_request
 # ---------------------------------------------------------------------------
 
 async def aide_data_sources_list(
-    type: Optional[str] = None,
+    ds_type: Optional[str] = None,
     state: Optional[str] = None,
     local_storage_name: Optional[str] = None,
     local_storage_svm_name: Optional[str] = None,
@@ -45,7 +45,7 @@ async def aide_data_sources_list(
     current state.
 
     Args:
-        type (str):
+        ds_type (str):
             Optional. Filter by data source type — `"volume"` or `"bucket"`.
         state (str):
             Optional. Filter by lifecycle state — `"processing"`, `"ready"`,
@@ -94,7 +94,7 @@ async def aide_data_sources_list(
     """
     # ONTAP uses dotted path notation for nested filter params
     candidate_params: list[tuple[str, object | None]] = [
-        ("type", type),
+        ("type", ds_type),
         ("state", state),
         ("local_storage.name", local_storage_name),
         ("local_storage.svm.name", local_storage_svm_name),
@@ -199,7 +199,7 @@ async def aide_data_source_get(
 
 async def aide_workspace_data_sources_list(
     workspace_uuid: str,
-    type: Optional[str] = None,
+    ds_type: Optional[str] = None,
     state: Optional[str] = None,
     max_records: Optional[int] = None,
     return_timeout: Optional[int] = None,
@@ -216,7 +216,7 @@ async def aide_workspace_data_sources_list(
     Args:
         workspace_uuid (str):
             Required. UUID of the workspace containing the data sources.
-        type (str):
+        ds_type (str):
             Optional. Filter by data source type — `"volume"` or `"bucket"`.
         state (str):
             Optional. Filter by lifecycle state — `"processing"`, `"ready"`,
@@ -252,7 +252,7 @@ async def aide_workspace_data_sources_list(
 
     """
     candidate_params: list[tuple[str, object | None]] = [
-        ("type", type),
+        ("type", ds_type),
         ("state", state),
         ("max_records", max_records),
         ("return_timeout", return_timeout),
@@ -359,7 +359,7 @@ async def aide_workspace_data_source_get(
 
 async def aide_workspace_data_source_create(
     workspace_uuid: str,
-    type: str,
+    ds_type: str,
     local_storage: dict,
     remote_storage: Optional[dict] = None,
     return_timeout: Optional[int] = None,
@@ -375,7 +375,7 @@ async def aide_workspace_data_source_create(
     Args:
         workspace_uuid (str):
             Required. UUID of the workspace to add the data source to.
-        type (str):
+        ds_type (str):
             Required. Data source type — `"volume"` or `"bucket"`.
         local_storage (dict):
             Required. Local storage configuration. For volumes:
@@ -404,7 +404,7 @@ async def aide_workspace_data_source_create(
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
 
     """
-    body: dict = {"type": type, "local_storage": local_storage}
+    body: dict = {"type": ds_type, "local_storage": local_storage}
     if remote_storage is not None:
         body["remote_storage"] = remote_storage
 
