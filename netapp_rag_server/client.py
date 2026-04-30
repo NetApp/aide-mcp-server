@@ -361,7 +361,7 @@ async def aide_request(
         # Some API endpoints return an empty JSON object {} instead of a
         # truly empty body. Treat it the same way as a zero-byte response
         # so callers get a meaningful status label rather than a bare {}.
-        if not data:
+        if isinstance(data, dict) and not data:
             if method.upper() == "DELETE":
                 status_label = "deleted"
             elif response.status_code == 201:
