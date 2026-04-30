@@ -491,9 +491,7 @@ async def aide_workspace_data_source_create(
     if remote_storage is not None:
         body["remote_storage"] = remote_storage
 
-    params: dict[str, int] = {}
-    if return_timeout:
-        params["return_timeout"] = return_timeout
+    params: dict[str, int] = {"return_timeout": return_timeout}
 
     path = f"/data-engine/workspaces/{workspace_uuid}/data-sources"
 
