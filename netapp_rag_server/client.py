@@ -253,7 +253,9 @@ async def aide_request(
 
         - HTTP 202: ``{"job": {"uuid": ..., "state": "queued", "_links": {...}}}``
         - HTTP 200/201 with empty body or empty JSON object ``{}``: ``{"status": "deleted"}`` /
-          ``{"status": "created"}`` / ``{"status": "updated"}``
+          ``{"status": "created"}`` / ``{"status": "updated"}`` — label is chosen
+          by method and status code: DELETE → ``"deleted"``; HTTP 201 → ``"created"``;
+          all other 200s → ``"updated"``.
         - All other 200/201: parsed JSON body.
 
     Raises
