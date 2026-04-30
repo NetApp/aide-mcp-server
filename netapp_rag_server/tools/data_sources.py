@@ -32,7 +32,7 @@ _UUID_RE = re.compile(
 # ---------------------------------------------------------------------------
 
 async def aide_data_sources_list(
-    type: Optional[str] = None,
+    datasource_type: Optional[str] = None,
     state: Optional[str] = None,
     local_storage_name: Optional[str] = None,
     local_storage_svm_name: Optional[str] = None,
@@ -52,7 +52,7 @@ async def aide_data_sources_list(
     current state.
 
     Args:
-        type (str):
+        datasource_type (str):
             Optional. Filter by data source type — `"volume"` or `"bucket"`.
         state (str):
             Optional. Filter by lifecycle state — `"processing"`, `"ready"`,
@@ -100,8 +100,13 @@ async def aide_data_sources_list(
 
     """
     # ONTAP uses dotted path notation for nested filter params
+    if return_timeout is not None and (not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120)):
+        return 'Error: return_timeout must be an integer between 0 and 120'
+
     candidate_params: list[tuple[str, object | None]] = [
-        ("type", type),
+        ("type", datasource_type),
+        ("state", state),
+        ("local_storage.name", local_storage_name),
         ("local_storage.svm.name", local_storage_svm_name),
         ("remote_storage.name", remote_storage_name),
         ("remote_storage.cluster.name", remote_storage_cluster_name),
@@ -125,7 +130,7 @@ async def aide_data_sources_list(
         data = await aide_request(
             "GET",
             "/data-engine/data-sources",
-            params=params if params else None,
+            params=params or None,
             use_data_services=False,
         )
         return json.dumps(data, indent=2)
@@ -150,7 +155,7 @@ async def aide_data_source_get(
     """
     Retrieve details of a specific cluster-wide data source by UUID.
 
-    Returns type, state, local/remote storage info, space usage and errors.
+    Returns type, state, local/remote storage info, space usage, associated workspaces, and errors.
 
     Args:
         uuid (str):
@@ -190,7 +195,7 @@ async def aide_data_source_get(
         data = await aide_request(
             "GET",
             path,
-            params=params if params else None,
+            params=params or None,
             use_data_services=False,
         )
         return json.dumps(data, indent=2)
@@ -210,7 +215,7 @@ async def aide_data_source_get(
 
 async def aide_workspace_data_sources_list(
     workspace_uuid: str,
-    type: Optional[str] = None,
+    datasource_type: Optional[str] = None,
     state: Optional[str] = None,
     max_records: Optional[int] = None,
     return_timeout: Optional[int] = None,
@@ -227,7 +232,7 @@ async def aide_workspace_data_sources_list(
     Args:
         workspace_uuid (str):
             Required. UUID of the workspace containing the data sources.
-        type (str):
+        datasource_type (str):
             Optional. Filter by data source type — `"volume"` or `"bucket"`.
         state (str):
             Optional. Filter by lifecycle state — `"processing"`, `"ready"`,
@@ -267,8 +272,11 @@ async def aide_workspace_data_sources_list(
     if not _UUID_RE.match(workspace_uuid):
         return f'Error: invalid UUID format: "{workspace_uuid}"'
 
+    if return_timeout is not None and (not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120)):
+        return 'Error: return_timeout must be an integer between 0 and 120'
+
     candidate_params: list[tuple[str, object | None]] = [
-        ("type", type),
+        ("type", datasource_type),
         ("state", state),
         ("max_records", max_records),
         ("return_timeout", return_timeout),
@@ -292,7 +300,7 @@ async def aide_workspace_data_sources_list(
         data = await aide_request(
             "GET",
             path,
-            params=params if params else None,
+            params=params or None,
             use_data_services=False,
         )
         return json.dumps(data, indent=2)
@@ -363,7 +371,7 @@ async def aide_workspace_data_source_get(
         data = await aide_request(
             "GET",
             path,
-            params=params if params else None,
+            params=params or None,
             use_data_services=False,
         )
         return json.dumps(data, indent=2)
@@ -383,7 +391,7 @@ async def aide_workspace_data_source_get(
 
 async def aide_workspace_data_source_create(
     workspace_uuid: str,
-    type: str,
+    datasource_type: str,
     local_storage: dict,
     remote_storage: Optional[dict] = None,
     return_timeout: int = 0,
@@ -399,7 +407,7 @@ async def aide_workspace_data_source_create(
     Args:
         workspace_uuid (str):
             Required. UUID of the workspace to add the data source to.
-        type (str):
+        datasource_type (str):
             Required. Data source type — `"volume"` or `"bucket"`.
         local_storage (dict):
             Required. Local storage configuration. For volumes:
@@ -411,6 +419,9 @@ async def aide_workspace_data_source_create(
         return_timeout (int):
             Optional. Seconds to wait for the async job to complete
             before returning (0–120, default 0 = return immediately with job UUID).
+            Unlike list/get tools where the ONTAP server default is 15 s,
+            this tool defaults to 0 so callers always receive the job UUID
+            immediately and can poll for completion if desired.
 
     Returns:
         str: JSON string. Typically HTTP 202 async job with:
@@ -436,8 +447,8 @@ async def aide_workspace_data_source_create(
     if not _UUID_RE.match(workspace_uuid):
         return f'Error: invalid UUID format: "{workspace_uuid}"'
 
-    if type not in ("volume", "bucket"):
-        return f'Error: type must be "volume" or "bucket", got "{type}"'
+    if datasource_type not in ("volume", "bucket"):
+        return f'Error: type must be "volume" or "bucket", got "{datasource_type}"'
 
     if not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120):
         return 'Error: return_timeout must be an integer between 0 and 120'
@@ -449,8 +460,10 @@ async def aide_workspace_data_source_create(
         return 'Error: local_storage must be a dict with at least a "name" key, e.g. {"name": "vol1", "svm": {"name": "svm1"}}'
     if remote_storage is None and "svm" not in local_storage:
         return 'Error: local_storage must include an "svm" key for local data sources, e.g. {"name": "vol1", "svm": {"name": "svm1"}}'
+    if remote_storage is None and not isinstance(local_storage.get("svm"), dict):
+        return 'Error: local_storage["svm"] must be a dict, e.g. {"name": "svm1"}'
 
-    body: dict = {"type": type, "local_storage": local_storage}
+    body: dict = {"type": datasource_type, "local_storage": local_storage}
     if remote_storage is not None:
         body["remote_storage"] = remote_storage
 
@@ -464,7 +477,7 @@ async def aide_workspace_data_source_create(
         data = await aide_request(
             "POST",
             path,
-            params=params if params else None,
+            params=params or None,
             body=body,
             use_data_services=False,
         )
