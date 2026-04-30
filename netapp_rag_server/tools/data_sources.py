@@ -404,6 +404,9 @@ async def aide_workspace_data_source_create(
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
 
     """
+    if ds_type not in ("volume", "bucket"):
+        return f'Error: ds_type must be "volume" or "bucket", got "{ds_type}"'
+
     body: dict = {"type": ds_type, "local_storage": local_storage}
     if remote_storage is not None:
         body["remote_storage"] = remote_storage
