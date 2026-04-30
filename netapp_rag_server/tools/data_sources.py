@@ -32,7 +32,7 @@ _UUID_RE = re.compile(
 # ---------------------------------------------------------------------------
 
 async def aide_data_sources_list(
-    ds_type: Optional[str] = None,
+    type: Optional[str] = None,
     state: Optional[str] = None,
     local_storage_name: Optional[str] = None,
     local_storage_svm_name: Optional[str] = None,
@@ -52,7 +52,7 @@ async def aide_data_sources_list(
     current state.
 
     Args:
-        ds_type (str):
+        type (str):
             Optional. Filter by data source type — `"volume"` or `"bucket"`.
         state (str):
             Optional. Filter by lifecycle state — `"processing"`, `"ready"`,
@@ -101,9 +101,7 @@ async def aide_data_sources_list(
     """
     # ONTAP uses dotted path notation for nested filter params
     candidate_params: list[tuple[str, object | None]] = [
-        ("type", ds_type),
-        ("state", state),
-        ("local_storage.name", local_storage_name),
+        ("type", type),
         ("local_storage.svm.name", local_storage_svm_name),
         ("remote_storage.name", remote_storage_name),
         ("remote_storage.cluster.name", remote_storage_cluster_name),
@@ -212,7 +210,7 @@ async def aide_data_source_get(
 
 async def aide_workspace_data_sources_list(
     workspace_uuid: str,
-    ds_type: Optional[str] = None,
+    type: Optional[str] = None,
     state: Optional[str] = None,
     max_records: Optional[int] = None,
     return_timeout: Optional[int] = None,
@@ -229,7 +227,7 @@ async def aide_workspace_data_sources_list(
     Args:
         workspace_uuid (str):
             Required. UUID of the workspace containing the data sources.
-        ds_type (str):
+        type (str):
             Optional. Filter by data source type — `"volume"` or `"bucket"`.
         state (str):
             Optional. Filter by lifecycle state — `"processing"`, `"ready"`,
@@ -270,7 +268,7 @@ async def aide_workspace_data_sources_list(
         return f'Error: invalid UUID format: "{workspace_uuid}"'
 
     candidate_params: list[tuple[str, object | None]] = [
-        ("type", ds_type),
+        ("type", type),
         ("state", state),
         ("max_records", max_records),
         ("return_timeout", return_timeout),
@@ -385,7 +383,7 @@ async def aide_workspace_data_source_get(
 
 async def aide_workspace_data_source_create(
     workspace_uuid: str,
-    ds_type: str,
+    type: str,
     local_storage: dict,
     remote_storage: Optional[dict] = None,
     return_timeout: int = 0,
@@ -401,7 +399,7 @@ async def aide_workspace_data_source_create(
     Args:
         workspace_uuid (str):
             Required. UUID of the workspace to add the data source to.
-        ds_type (str):
+        type (str):
             Required. Data source type — `"volume"` or `"bucket"`.
         local_storage (dict):
             Required. Local storage configuration. For volumes:
@@ -429,26 +427,36 @@ async def aide_workspace_data_source_create(
 
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
         Returns ``'Error: invalid UUID format: "..."'`` immediately if
-        `workspace_uuid` is not a valid UUID. Returns ``'Error: ds_type must
+        `workspace_uuid` is not a valid UUID. Returns ``'Error: type must
         be "volume" or "bucket"'`` for an invalid type. Returns
-        ``'Error: local_storage must be a dict with at least a "name" key'``
+        ``'Error: local_storage must be a dict with at least "name" and "svm" keys'``
         for a malformed local_storage argument.
 
     """
     if not _UUID_RE.match(workspace_uuid):
         return f'Error: invalid UUID format: "{workspace_uuid}"'
 
-    if ds_type not in ("volume", "bucket"):
-        return f'Error: ds_type must be "volume" or "bucket", got "{ds_type}"'
+    if type not in ("volume", "bucket"):
+        return f'Error: type must be "volume" or "bucket", got "{type}"'
 
+    if not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120):
+        return 'Error: return_timeout must be an integer between 0 and 120'
+
+    # For local (non-cross-cluster) volumes, both "name" and "svm" are required.
+    # For remote data sources the caller supplies remote_storage and only svm is
+    # needed in local_storage, but "name" is still required as the local anchor.
     if not isinstance(local_storage, dict) or "name" not in local_storage:
         return 'Error: local_storage must be a dict with at least a "name" key, e.g. {"name": "vol1", "svm": {"name": "svm1"}}'
+    if remote_storage is None and "svm" not in local_storage:
+        return 'Error: local_storage must include an "svm" key for local data sources, e.g. {"name": "vol1", "svm": {"name": "svm1"}}'
 
-    body: dict = {"type": ds_type, "local_storage": local_storage}
+    body: dict = {"type": type, "local_storage": local_storage}
     if remote_storage is not None:
         body["remote_storage"] = remote_storage
 
-    params: dict[str, int] = {"return_timeout": return_timeout}
+    params: dict[str, int] = {}
+    if return_timeout:
+        params["return_timeout"] = return_timeout
 
     path = f"/data-engine/workspaces/{workspace_uuid}/data-sources"
 
