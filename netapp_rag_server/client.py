@@ -252,8 +252,10 @@ async def aide_request(
         Parsed JSON response.
 
         - HTTP 202: ``{"job": {"uuid": ..., "state": "queued", "_links": {...}}}``
-        - HTTP 200/201 with empty body: ``{"status": "deleted"}`` /
-          ``{"status": "created"}`` / ``{"status": "updated"}``
+        - HTTP 200/201 with empty body or empty JSON object ``{}``: ``{"status": "deleted"}`` /
+          ``{"status": "created"}`` / ``{"status": "updated"}`` — label is chosen
+          by method and status code: DELETE → ``"deleted"``; HTTP 201 → ``"created"``;
+          all other 200s → ``"updated"``.
         - All other 200/201: parsed JSON body.
 
     Raises
@@ -343,21 +345,26 @@ async def aide_request(
 
     # --- HTTP 200 / 201 — success ------------------------------------------
     if response.status_code in (200, 201):
+        def _status_label(http_method: str, status_code: int) -> str:
+            if http_method.upper() == "DELETE":
+                return "deleted"
+            return "created" if status_code == 201 else "updated"
+
         if not response.content:
-            if method.upper() == "DELETE":
-                status_label = "deleted"
-            elif response.status_code == 201:
-                status_label = "created"
-            else:
-                status_label = "updated"
-            return {"status": status_label}
+            return {"status": _status_label(method, response.status_code)}
         try:
-            return response.json()
+            data = response.json()
         except ValueError as exc:
             raise AideApiError(
                 code="parse_error",
                 message=f"Failed to parse API response: {exc}",
             )
+        # Some API endpoints return an empty JSON object {} instead of a
+        # truly empty body. Treat it the same way as a zero-byte response
+        # so callers get a meaningful status label rather than a bare {}.
+        if isinstance(data, dict) and not data:
+            return {"status": _status_label(method, response.status_code)}
+        return data
 
     # --- 4xx / 5xx — error -------------------------------------------------
     if response.status_code == 403:
