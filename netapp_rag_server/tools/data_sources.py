@@ -1,6 +1,8 @@
 # Copyright 2026 NetApp, Inc. All Rights Reserved.
 
-"""MCP tools for data sources: cluster-wide and per-workspace storage (e.g. volumes, buckets).
+"""MCP tools for data sources: cluster-wide and per-workspace storage (e.g. volumes).
+
+Note: Bucket support is not yet available in AIDE and will be added in a future release when supported.
 
 Tools implemented here
 ----------------------
@@ -46,14 +48,14 @@ async def aide_data_sources_list(
     """
     List all data sources across the ONTAP cluster.
 
-    Data sources are the storage volumes and buckets that AIDE scans. Use
-    filters to find data sources by type (volume/bucket), state, or storage
+    Data sources are the storage volumes that AIDE scans. Use
+    filters to find data sources by type (volume), state, or storage
     name. Returns storage details, space usage, associated workspaces, and
     current state.
 
     Args:
         type (str):
-            Optional. Filter by data source type — `"volume"` or `"bucket"`.
+            Optional. Filter by data source type — `"volume"`.
         state (str):
             Optional. Filter by lifecycle state — `"processing"`, `"ready"`,
             `"failed"`, `"outdated"`, or `"deleted"`.
@@ -87,7 +89,7 @@ async def aide_data_sources_list(
               additional fields:
                 - `uuid` (str): Unique identifier of the data source.
                 - `workspaces` (list): Workspaces this data source belongs to, each with `uuid` and `name`.
-                - `type` (str): Data source type — `"volume"` or `"bucket"`.
+                - `type` (str): Data source type — `"volume"`.
                 - `space` (dict): Space usage with `total`, `used`, and `available` in bytes.
                 - `message` (str): Human-readable status message.
                 - `last_refresh_time` (str): ISO 8601 timestamp of the last scan.
@@ -97,7 +99,7 @@ async def aide_data_sources_list(
                 - `errors` (list): Any errors associated with the data source. Omitted when empty.
 
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
-        Returns ``'Error: type must be "volume" or "bucket"'`` for
+        Returns ``'Error: type must be "volume"'`` for
         an invalid `type`. Returns ``'Error: max_records must be an
         integer ≥ 1'`` for an out-of-range `max_records`. Returns
         ``'Error: return_timeout must be an integer between 0 and 120'`` for an
@@ -105,8 +107,8 @@ async def aide_data_sources_list(
 
     """
     # ONTAP uses dotted path notation for nested filter params
-    if type is not None and type not in ("volume", "bucket"):
-        return 'Error: type must be "volume" or "bucket"'
+    if type is not None and type != "volume":
+        return 'Error: type must be "volume"'
     if max_records is not None and (not isinstance(max_records, int) or max_records < 1):
         return 'Error: max_records must be an integer ≥ 1'
     if return_timeout is not None and (isinstance(return_timeout, bool) or not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120)):
@@ -176,7 +178,7 @@ async def aide_data_source_get(
         str: JSON string with a single data source object containing:
             - `uuid` (str): Unique identifier of the data source.
             - `workspaces` (list): Workspaces this data source belongs to, each with `uuid` and `name`.
-            - `type` (str): Data source type — `"volume"` or `"bucket"`.
+            - `type` (str): Data source type — `"volume"`.
             - `space` (dict): Space usage with `total`, `used`, and `available` in bytes.
             - `message` (str): Human-readable status message.
             - `last_refresh_time` (str): ISO 8601 timestamp of the last scan.
@@ -234,7 +236,7 @@ async def aide_workspace_data_sources_list(
     """
     List data sources within a specific workspace.
 
-    Use this when you need to see what storage volumes or buckets a workspace
+    Use this when you need to see what storage volumes a workspace
     is scanning. Same response shape as `aide_data_sources_list` but scoped
     to one workspace.
 
@@ -242,7 +244,7 @@ async def aide_workspace_data_sources_list(
         workspace_uuid (str):
             Required. UUID of the workspace containing the data sources.
         type (str):
-            Optional. Filter by data source type — `"volume"` or `"bucket"`.
+            Optional. Filter by data source type — `"volume"`.
         state (str):
             Optional. Filter by lifecycle state — `"processing"`, `"ready"`,
             `"failed"`, `"outdated"`, or `"deleted"`.
@@ -264,7 +266,7 @@ async def aide_workspace_data_sources_list(
               additional fields:
                 - `workspace` (dict): The parent workspace, containing `uuid`.
                 - `uuid` (str): Unique identifier of the data source.
-                - `type` (str): Data source type — `"volume"` or `"bucket"`.
+                - `type` (str): Data source type — `"volume"`.
                 - `space` (dict): Space usage with `total`, `used`, and `available` in bytes.
                 - `message` (str): Human-readable status message.
                 - `last_refresh_time` (str): ISO 8601 timestamp of the last scan.
@@ -276,7 +278,7 @@ async def aide_workspace_data_sources_list(
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
         Returns ``'Error: invalid UUID format: "..."'`` immediately if
         `workspace_uuid` is not a valid UUID. Returns
-        ``'Error: type must be "volume" or "bucket"'`` for an
+        ``'Error: type must be "volume"'`` for an
         invalid `type`. Returns ``'Error: max_records must be an
         integer ≥ 1'`` for an out-of-range `max_records`. Returns
         ``'Error: return_timeout must be an integer between 0 and 120'`` for an
@@ -286,8 +288,8 @@ async def aide_workspace_data_sources_list(
     if not _UUID_RE.match(workspace_uuid):
         return f'Error: invalid UUID format: "{workspace_uuid}"'
 
-    if type is not None and type not in ("volume", "bucket"):
-        return 'Error: type must be "volume" or "bucket"'
+    if type is not None and type != "volume":
+        return 'Error: type must be "volume"'
     if max_records is not None and (not isinstance(max_records, int) or max_records < 1):
         return 'Error: max_records must be an integer ≥ 1'
     if return_timeout is not None and (isinstance(return_timeout, bool) or not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120)):
@@ -359,7 +361,7 @@ async def aide_workspace_data_source_get(
         str: JSON string with a single data source object containing:
             - `workspace` (dict): The parent workspace, containing `uuid`.
             - `uuid` (str): Unique identifier of the data source.
-            - `type` (str): Data source type — `"volume"` or `"bucket"`.
+            - `type` (str): Data source type — `"volume"`.
             - `space` (dict): Space usage with `total`, `used`, and `available` in bytes.
             - `message` (str): Human-readable status message.
             - `last_refresh_time` (str): ISO 8601 timestamp of the last scan.
@@ -415,18 +417,18 @@ async def aide_workspace_data_source_create(
     return_timeout: int = 0,
 ) -> str:
     """
-    Add a data source (storage volume or bucket) to a workspace.
+    Add a data source (storage volume) to a workspace.
 
     The workspace will begin scanning this data source for entities. Requires
-    `type` ("volume" or "bucket") and `local_storage` with the volume/
-    bucket name and SVM. Returns an async job UUID. For cross-cluster data
+    `type` ("volume") and `local_storage` with the volume name and SVM.
+    Returns an async job UUID. For cross-cluster data
     sources, also provide `remote_storage`.
 
     Args:
         workspace_uuid (str):
             Required. UUID of the workspace to add the data source to.
         type (str):
-            Required. Data source type — `"volume"` or `"bucket"`.
+            Required. Data source type — `"volume"`.
         local_storage (dict):
             Required. Local storage configuration. For volumes:
             `{"name": "vol1", "svm": {"name": "svm1"}}`. For remote
@@ -450,14 +452,14 @@ async def aide_workspace_data_source_create(
         If `return_timeout` > 0 and the job finishes within that window,
         returns the created data source object (HTTP 201) with:
             - `uuid` (str): UUID of the newly created data source.
-            - `type` (str): Data source type — `"volume"` or `"bucket"`.
+            - `type` (str): Data source type — `"volume"`.
             - `state` (str): Initial state, typically `"processing"`.
             - `local_storage` (dict): Local storage info with `name` and `svm.name`.
 
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
         Returns ``'Error: invalid UUID format: "..."'`` immediately if
         `workspace_uuid` is not a valid UUID. Returns ``'Error: type must
-        be "volume" or "bucket", got "..."'`` for an invalid `type`. Returns
+        be "volume", got "..."'`` for an invalid `type`. Returns
         ``'Error: local_storage must be a dict with at least a "name" key...'``
         if `local_storage` is missing or has no `"name"`. Returns
         ``'Error: local_storage must include an "svm" key...'`` if `"svm"` is
@@ -469,8 +471,8 @@ async def aide_workspace_data_source_create(
     if not _UUID_RE.match(workspace_uuid):
         return f'Error: invalid UUID format: "{workspace_uuid}"'
 
-    if type not in ("volume", "bucket"):
-        return f'Error: type must be "volume" or "bucket", got "{type}"'
+    if type not in ("volume",):
+        return f'Error: type must be "volume", got "{type}"'
 
     if isinstance(return_timeout, bool) or not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120):
         return 'Error: return_timeout must be an integer between 0 and 120'
