@@ -471,7 +471,7 @@ async def aide_workspace_data_source_create(
     if not _UUID_RE.match(workspace_uuid):
         return f'Error: invalid UUID format: "{workspace_uuid}"'
 
-    if type not in ("volume",):
+    if type is not None and type != "volume":
         return f'Error: type must be "volume", got "{type}"'
 
     if isinstance(return_timeout, bool) or not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120):
