@@ -28,6 +28,9 @@ _UUID_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Valid states for data sources
+_VALID_STATES = {"processing", "ready", "failed", "outdated", "deleted"}
+
 
 # ---------------------------------------------------------------------------
 # Tool #6 — aide_data_sources_list
@@ -109,6 +112,8 @@ async def aide_data_sources_list(
     # ONTAP uses dotted path notation for nested filter params
     if type is not None and type != "volume":
         return 'Error: type must be "volume"'
+    if state is not None and state not in _VALID_STATES:
+        return f'Error: state must be one of {sorted(_VALID_STATES)}, got "{state}"'
     if max_records is not None and (not isinstance(max_records, int) or max_records < 1):
         return 'Error: max_records must be an integer ≥ 1'
     if return_timeout is not None and (isinstance(return_timeout, bool) or not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120)):
@@ -290,6 +295,8 @@ async def aide_workspace_data_sources_list(
 
     if type is not None and type != "volume":
         return 'Error: type must be "volume"'
+    if state is not None and state not in _VALID_STATES:
+        return f'Error: state must be one of {sorted(_VALID_STATES)}, got "{state}"'
     if max_records is not None and (not isinstance(max_records, int) or max_records < 1):
         return 'Error: max_records must be an integer ≥ 1'
     if return_timeout is not None and (isinstance(return_timeout, bool) or not isinstance(return_timeout, int) or not (0 <= return_timeout <= 120)):
@@ -464,8 +471,8 @@ async def aide_workspace_data_source_create(
         if `local_storage` is missing or has no `"name"`. Returns
         ``'Error: local_storage must include an "svm" key...'`` if `"svm"` is
         absent for a local data source. Returns
-        ``'Error: local_storage["svm"] must be a dict...'`` if `"svm"` is not
-        a dict.
+        ``'Error: local_storage["svm"] must be a dict with a "name" key...'`` if `"svm"` is not
+        a dict or is missing a `"name"` key.
 
     """
     if not _UUID_RE.match(workspace_uuid):
@@ -483,11 +490,10 @@ async def aide_workspace_data_source_create(
     if not isinstance(local_storage, dict) or "name" not in local_storage:
         return 'Error: local_storage must be a dict with at least a "name" key, e.g. {"name": "vol1", "svm": {"name": "svm1"}}'
     if remote_storage is None:
-        svm = local_storage.get("svm")
-        if not svm:
+        if "svm" not in local_storage:
             return 'Error: local_storage must include an "svm" key for local data sources, e.g. {"name": "vol1", "svm": {"name": "svm1"}}'
-        if not isinstance(svm, dict):
-            return 'Error: local_storage["svm"] must be a dict, e.g. {"name": "svm1"}'
+        if not isinstance(local_storage["svm"], dict) or "name" not in local_storage["svm"]:
+            return 'Error: local_storage["svm"] must be a dict with a "name" key, e.g. {"name": "svm1"}'
 
     body: dict = {"type": type, "local_storage": local_storage}
     if remote_storage is not None:
@@ -501,7 +507,7 @@ async def aide_workspace_data_source_create(
         data = await aide_request(
             "POST",
             path,
-            params=params or None,
+            params=params,
             body=body,
             use_data_services=False,
         )
