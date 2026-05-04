@@ -103,7 +103,8 @@ async def aide_data_sources_list(
 
         On error, returns a string beginning with `"API Error"` or `"Error:"`.
         Returns ``'Error: type must be "volume"'`` for
-        an invalid `type`. Returns ``'Error: max_records must be an
+        an invalid `type`. Returns ``'Error: state must be one of [...], got "..."'``
+        for an invalid `state`. Returns ``'Error: max_records must be an
         integer ≥ 1'`` for an out-of-range `max_records`. Returns
         ``'Error: return_timeout must be an integer between 0 and 120'`` for an
         out-of-range `return_timeout`.
@@ -284,7 +285,8 @@ async def aide_workspace_data_sources_list(
         Returns ``'Error: invalid UUID format: "..."'`` immediately if
         `workspace_uuid` is not a valid UUID. Returns
         ``'Error: type must be "volume"'`` for an
-        invalid `type`. Returns ``'Error: max_records must be an
+        invalid `type`. Returns ``'Error: state must be one of [...], got "..."'``
+        for an invalid `state`. Returns ``'Error: max_records must be an
         integer ≥ 1'`` for an out-of-range `max_records`. Returns
         ``'Error: return_timeout must be an integer between 0 and 120'`` for an
         out-of-range `return_timeout`.
