@@ -7,7 +7,13 @@ entities, and composites, import them here and extend ``__all__`` so callers can
 ``from netapp_rag_server.tools import ...`` consistently.
 """
 
-from .data_collections import aide_data_collection_get, aide_data_collections_list
+from .data_collections import (
+    aide_data_collections_list,
+    aide_data_collection_get,
+    aide_data_collection_create,
+    aide_data_collection_update,
+    aide_data_collection_delete,
+)
 from .data_sources import (
     aide_data_source_get,
     aide_data_sources_list,
@@ -25,8 +31,11 @@ __all__ = [
     "netapp_data_engine_search",
     "aide_workspace_get",
     "aide_workspaces_list",
-    "aide_data_collection_get",
     "aide_data_collections_list",
+    "aide_data_collection_get",
+    "aide_data_collection_create",
+    "aide_data_collection_update",
+    "aide_data_collection_delete",
     "aide_data_source_get",
     "aide_data_sources_list",
     "aide_workspace_data_source_create",
