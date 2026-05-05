@@ -193,9 +193,13 @@ async def aide_data_collection_create(
             `{"uuid": "existing-query-uuid"}`.
         entities (Optional[list[dict]]): For manual collections, an explicit
             list of entity references, e.g. `[{"uuid": "entity-uuid-1"}]`.
-        embedding (Optional[dict]): Vectorization settings. When `enabled` is
-            true, all six fields must be provided — ONTAP does not apply
-            defaults for a partial config. Valid example:
+        embedding (Optional[dict]): Vectorization settings. When `enabled`
+            is true, ONTAP requires `dimension`, `chunk_type`, and
+            `quantization` to be set explicitly — it does not apply defaults
+            for these. `chunk_size` is required only when `chunk_type` is
+            `fixed_size` or `recursive`; it is ignored for `sentence`,
+            `paragraph`, `full_file`, and `semantic`. `re_rank` is optional
+            (omit to leave it unset). Valid example:
             `{"enabled": true, "dimension": 1024, "chunk_size": 512,
             "chunk_type": "fixed_size", "quantization": "fp32",
             "re_rank": true}`. Allowed values: `dimension` 512/768/1024;
