@@ -63,8 +63,9 @@ async def aide_data_collections_list(
         order_by (Optional[str]): Sort order, e.g. `name asc,create_time desc`.
 
     Returns:
-        str: JSON string with `num_records` and `records` (list of data
-        collection objects).
+        str: JSON string with `num_records` (count in this page),
+        `total_records` (total matching the filter), and `records` (list of
+        data collection objects).
 
     """
     if return_timeout is not None and not (
@@ -106,9 +107,6 @@ async def aide_data_collections_list(
             params=params if params else None,
             use_data_services=False,
         )
-        # Strip total_records — its presence causes some LLMs to infer pagination and re-call the tool.
-        if isinstance(data, dict):
-            data.pop("total_records", None)
         return json.dumps(data, indent=2)
     except AideApiError as e:
         return _format_api_error(e)
@@ -247,7 +245,10 @@ async def aide_data_collection_create(
         )
         # Add resource context to the bare status response.
         if isinstance(data, dict) and set(data.keys()) == {"status"}:
-            data = {**data, "workspace_uuid": workspace_uuid, "name": name}
+            extra = {"workspace_uuid": workspace_uuid}
+            if name is not None:
+                extra["name"] = name
+            data = {**data, **extra}
         return json.dumps(data, indent=2)
     except AideApiError as e:
         return _format_api_error(e)
@@ -304,6 +305,9 @@ async def aide_data_collection_update(
         ("embedding", embedding),
     ]
     body: dict = {key: value for key, value in candidate_body if value is not None}
+
+    if not body:
+        return "Error: at least one of description, query, or embedding must be provided"
 
     params: dict[str, int] = {}
     if return_timeout is not None:
