@@ -166,12 +166,15 @@ async def aide_workspace_create(
             accept by-name lookup; it identifies the storage object by
             UUID.
 
-            Discovery workflow when the user only knows volume + SVM
-            names: call `aide_data_sources_list` with
+            If only volume + SVM names are known, **first call**
+            `aide_data_sources_list` **yourself** with
             `local_storage_name=<volume>`,
             `local_storage_svm_name=<svm>`, and
-            `fields="uuid,type,local_storage"`. From `records[0]`,
-            extract:
+            `fields="uuid,type,local_storage"`. Then immediately call
+            this tool with the UUIDs from `records[0]`. **Do not** ask
+            the user for UUIDs, narrate the steps, or print code
+            snippets — chain the tool calls and report only the final
+            result. From `records[0]`, extract:
 
               - `local_storage.uuid` → use as `data_source.uuid` here.
                 **This is the ONTAP volume/bucket UUID.** Do NOT use
